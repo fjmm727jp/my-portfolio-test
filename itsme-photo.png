@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<script src="./image-slot.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,500;0,700;0,800;1,400&amp;family=Noto+Sans+JP:wght@300;400;500;700&amp;display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:#F8FAFC;-webkit-font-smoothing:antialiased;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-track{background:#F0F4F8;}
+  ::-webkit-scrollbar-thumb{background:rgba(30,58,138,0.18);border-radius:99px;}
+  ::-webkit-scrollbar-thumb:hover{background:#FF9E80;}
+  @keyframes fm-drift{from{transform:translate(0,0) scale(1);}to{transform:translate(3%,3%) scale(1.08);}}
+  @keyframes fm-spin{to{transform:rotate(360deg);}}
+  @keyframes fm-rotate{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+  @keyframes fm-marquee{to{transform:translateX(-50%);}}
+  @keyframes fm-marquee-rev{from{transform:translateX(-50%);}to{transform:translateX(0);}}
+  @keyframes fm-pulse{0%{box-shadow:0 0 0 0 rgba(255,158,128,0.55);}70%{box-shadow:0 0 0 20px rgba(255,158,128,0);}100%{box-shadow:0 0 0 0 rgba(255,158,128,0);}}
+  @keyframes fm-bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+  @keyframes fm-rise{from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:none;}}
+  @keyframes fm-grow{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+  /* stop-motion jerky wobble (steps() => choppy カクカク feel) */
+  @keyframes fm-jerk1{0%{transform:rotate(-1.5deg) translateY(0);}33%{transform:rotate(1deg) translateY(-2px);}66%{transform:rotate(-0.5deg) translateY(1px);}100%{transform:rotate(-1.5deg) translateY(0);}}
+  @keyframes fm-jerk2{0%{transform:rotate(2deg) translateY(0);}33%{transform:rotate(-1deg) translateY(-2px);}66%{transform:rotate(1.5deg) translateY(1px);}100%{transform:rotate(2deg) translateY(0);}}
+  @keyframes fm-jerk3{0%{transform:rotate(-1deg) translateY(0);}33%{transform:rotate(1.5deg) translateY(-2px);}66%{transform:rotate(-1deg) translateY(1px);}100%{transform:rotate(-1deg) translateY(0);}}
+  .fm-jerk1{animation:fm-jerk1 1.5s steps(1,end) infinite;}
+  .fm-jerk2{animation:fm-jerk2 1.4s steps(1,end) infinite;}
+  .fm-jerk3{animation:fm-jerk3 1.6s steps(1,end) infinite;}
+  @keyframes fm-ovin{from{transform:translateX(100%);}to{transform:translateX(0);}}
+  @keyframes fm-ovout{from{transform:translateX(0);}to{transform:translateX(100%);}}
+  @keyframes fm-ovcontent{from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:none;}}
+  [data-works-more]{transition:transform .25s,box-shadow .25s;}
+  [data-works-more]:hover{transform:translateY(-3px);box-shadow:0 16px 32px rgba(0,0,0,0.28);}
+  [data-works-card]{transition:transform .3s cubic-bezier(.16,1,.3,1);}
+  [data-works-card]:hover{transform:translateY(-6px);}
+  [data-works-close]:hover{background:#FF9E80 !important;color:#0E1F52 !important;border-color:#FF9E80 !important;}
+  @media (max-width:900px){
+    #fm-spine{display:none !important;}
+    #fm-main{margin-left:0 !important;}
+    #fm-burger{display:flex !important;}
+    [data-col2]{grid-template-columns:1fr !important;}
+    [data-col3]{grid-template-columns:1fr !important;}
+    #fm-hero h1{font-size:clamp(50px,17vw,120px) !important;}
+    #fm-cta{width:64px !important;height:64px !important;bottom:18px !important;right:18px !important;}
+    .fm-vert{writing-mode:horizontal-tb !important;letter-spacing:0.16em !important;margin-top:14px !important;}
+    .fm-stat{display:flex !important;align-items:baseline !important;flex-wrap:wrap !important;gap:4px 8px !important;}
+    .fm-stat p{margin-top:0 !important;}
+    .fm-why-num{font-size:21px !important;}
+    .fm-why-h{font-size:24px !important;}
+    .fm-why-en{font-size:15px !important;}
+    #fm-works-overlay{left:0 !important;}
+  }
+</style>
+</helmet>
+<div id="fm-root" style="position:relative;min-height:100vh;background:#F8FAFC;color:#0F172A;font-family:'Noto Sans JP',sans-serif;overflow-x:hidden;">
+
+  <!-- ambient backdrop -->
+  <div style="position:fixed;inset:0;z-index:0;pointer-events:none;background-size:26px 26px;background-image:linear-gradient(to right,rgba(30,58,138,0.025) 1px,transparent 1px),linear-gradient(to bottom,rgba(30,58,138,0.025) 1px,transparent 1px);"></div>
+  <div style="position:fixed;top:-12vw;left:-6vw;width:64vw;height:64vw;border-radius:50%;z-index:0;pointer-events:none;background:radial-gradient(circle,rgba(217,231,247,0.85) 0%,rgba(255,255,255,0) 70%);animation:fm-drift 16s ease-in-out infinite alternate;"></div>
+  <div style="position:fixed;bottom:-14vw;right:-8vw;width:62vw;height:62vw;border-radius:50%;z-index:0;pointer-events:none;background:radial-gradient(circle,rgba(255,158,128,0.18) 0%,rgba(255,255,255,0) 70%);animation:fm-drift 19s ease-in-out infinite alternate;animation-delay:-6s;"></div>
+
+  <!-- ===== Left spine ===== -->
+  <nav id="fm-spine" style="position:fixed;top:0;left:0;height:100vh;width:120px;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:26px 0;background:rgba(255,255,255,0.55);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-right:1px solid rgba(255,255,255,0.7);">
+    <div style="position:absolute;right:0;top:0;width:2px;height:100%;background:rgba(30,58,138,0.06);"></div>
+    <div data-progress="" style="position:absolute;right:0;top:0;width:2px;height:0%;background:linear-gradient(#1E3A8A,#FF9E80);"></div>
+
+    <a data-nav="top" href="#top" style="position:relative;width:58px;height:58px;border-radius:16px;background:#fff;border:1px solid rgba(255,255,255,0.9);box-shadow:0 4px 14px rgba(31,38,135,0.1);display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;overflow:hidden;">
+      <img src="logo.png" alt="ふじもも" style="width:100%;height:100%;object-fit:cover;display:block;">
+    </a>
+
+    <div style="display:flex;flex-direction:column;align-items:stretch;gap:4px;width:100%;">
+      <a data-nav="top" href="#top" style="position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;padding:10px 0;cursor:pointer;">
+        <span data-ind="" style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;background:#FF9E80;border-radius:0 4px 4px 0;"></span>
+        <span data-num="" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:14px;letter-spacing:-0.02em;color:rgba(30,58,138,0.38);">00</span>
+        <span data-label="" style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:8px;letter-spacing:0.2em;color:rgba(30,58,138,0.32);">TOP</span>
+      </a>
+      <a data-nav="about" href="#about" style="position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;padding:10px 0;cursor:pointer;">
+        <span data-ind="" style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;background:#FF9E80;border-radius:0 4px 4px 0;"></span>
+        <span data-num="" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:14px;letter-spacing:-0.02em;color:rgba(30,58,138,0.38);">01</span>
+        <span data-label="" style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:8px;letter-spacing:0.2em;color:rgba(30,58,138,0.32);">ABOUT</span>
+      </a>
+      <a data-nav="works" href="#works" style="position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;padding:10px 0;cursor:pointer;">
+        <span data-ind="" style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;background:#FF9E80;border-radius:0 4px 4px 0;"></span>
+        <span data-num="" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:14px;letter-spacing:-0.02em;color:rgba(30,58,138,0.38);">02</span>
+        <span data-label="" style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:8px;letter-spacing:0.2em;color:rgba(30,58,138,0.32);">WORKS</span>
+      </a>
+      <a data-nav="career" href="#career" style="position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;padding:10px 0;cursor:pointer;">
+        <span data-ind="" style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;background:#FF9E80;border-radius:0 4px 4px 0;"></span>
+        <span data-num="" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:14px;letter-spacing:-0.02em;color:rgba(30,58,138,0.38);">03</span>
+        <span data-label="" style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:8px;letter-spacing:0.2em;color:rgba(30,58,138,0.32);">CAREER</span>
+      </a>
+      <a data-nav="why" href="#why" style="position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;padding:10px 0;cursor:pointer;">
+        <span data-ind="" style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;background:#FF9E80;border-radius:0 4px 4px 0;"></span>
+        <span data-num="" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:14px;letter-spacing:-0.02em;color:rgba(30,58,138,0.38);">04</span>
+        <span data-label="" style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:8px;letter-spacing:0.2em;color:rgba(30,58,138,0.32);">WHY</span>
+      </a>
+      <a data-nav="skills" href="#skills" style="position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;padding:10px 0;cursor:pointer;">
+        <span data-ind="" style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;background:#FF9E80;border-radius:0 4px 4px 0;"></span>
+        <span data-num="" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:14px;letter-spacing:-0.02em;color:rgba(30,58,138,0.38);">05</span>
+        <span data-label="" style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:8px;letter-spacing:0.2em;color:rgba(30,58,138,0.32);">SKILLS</span>
+      </a>
+      <a data-nav="contact" href="#contact" style="position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;padding:10px 0;cursor:pointer;">
+        <span data-ind="" style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;background:#FF9E80;border-radius:0 4px 4px 0;"></span>
+        <span data-num="" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:14px;letter-spacing:-0.02em;color:rgba(30,58,138,0.38);">06</span>
+        <span data-label="" style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:8px;letter-spacing:0.2em;color:rgba(30,58,138,0.32);">TALK</span>
+      </a>
+    </div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;gap:14px;flex-shrink:0;">
+      <div style="width:28px;height:28px;border-radius:8px;border:1.5px solid rgba(30,58,138,0.3);display:flex;align-items:center;justify-content:center;">
+        <div style="width:10px;height:10px;border-radius:50%;border:1.5px solid rgba(30,58,138,0.4);"></div>
+      </div>
+      <span style="writing-mode:vertical-rl;font-family:'Montserrat',sans-serif;font-weight:700;font-size:8px;letter-spacing:0.3em;color:rgba(30,58,138,0.3);">OSAKA / JP</span>
+    </div>
+  </nav>
+
+  <!-- ===== Mobile hamburger ===== -->
+  <button id="fm-burger" style="display:none;position:fixed;top:16px;right:16px;z-index:80;width:50px;height:50px;border-radius:14px;border:1px solid rgba(255,255,255,0.7);background:rgba(255,255,255,0.7);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 6px 18px rgba(31,38,135,0.1);flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;">
+    <span style="display:block;width:20px;height:2px;background:#1E3A8A;border-radius:2px;"></span>
+    <span style="display:block;width:20px;height:2px;background:#1E3A8A;border-radius:2px;"></span>
+    <span style="display:block;width:20px;height:2px;background:#1E3A8A;border-radius:2px;"></span>
+  </button>
+  <div id="fm-menu" style="display:none;position:fixed;inset:0;z-index:75;background:rgba(248,250,252,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;padding:40px;">
+    <button id="fm-menu-close" style="position:absolute;top:20px;right:22px;width:46px;height:46px;border-radius:50%;border:1px solid rgba(30,58,138,0.15);background:#fff;color:#1E3A8A;font-size:20px;cursor:pointer;">✕</button>
+    <a data-nav="top" href="#top" style="display:flex;align-items:baseline;gap:14px;text-decoration:none;padding:10px 0;"><span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;color:#FF9E80;">00</span><span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:30px;color:#1E3A8A;">TOP</span></a>
+    <a data-nav="about" href="#about" style="display:flex;align-items:baseline;gap:14px;text-decoration:none;padding:10px 0;"><span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;color:#FF9E80;">01</span><span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:30px;color:#1E3A8A;">ABOUT</span></a>
+    <a data-nav="works" href="#works" style="display:flex;align-items:baseline;gap:14px;text-decoration:none;padding:10px 0;"><span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;color:#FF9E80;">02</span><span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:30px;color:#1E3A8A;">WORKS</span></a>
+    <a data-nav="career" href="#career" style="display:flex;align-items:baseline;gap:14px;text-decoration:none;padding:10px 0;"><span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;color:#FF9E80;">03</span><span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:30px;color:#1E3A8A;">CAREER</span></a>
+    <a data-nav="why" href="#why" style="display:flex;align-items:baseline;gap:14px;text-decoration:none;padding:10px 0;"><span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;color:#FF9E80;">04</span><span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:30px;color:#1E3A8A;">WHY ME</span></a>
+    <a data-nav="skills" href="#skills" style="display:flex;align-items:baseline;gap:14px;text-decoration:none;padding:10px 0;"><span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;color:#FF9E80;">05</span><span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:30px;color:#1E3A8A;">SKILLS</span></a>
+    <a data-nav="contact" href="#contact" style="display:flex;align-items:baseline;gap:14px;text-decoration:none;padding:10px 0;"><span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;color:#FF9E80;">06</span><span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:30px;color:#1E3A8A;">CONTACT</span></a>
+  </div>
+
+  <!-- ===== Floating CONTACT ===== -->
+  <button id="fm-cta" style="position:fixed;bottom:30px;right:30px;z-index:60;width:88px;height:88px;border-radius:50%;border:1px solid rgba(255,255,255,0.5);background:#FF9E80;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;animation:fm-pulse 2.8s ease-out infinite;box-shadow:0 12px 28px rgba(255,158,128,0.4);">
+    <span class="fm-cta-inner" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:'Montserrat',sans-serif;">
+      <span style="font-weight:800;font-size:11px;letter-spacing:0.12em;">CONTACT</span>
+      <span style="font-size:14px;line-height:1;">↗</span>
+    </span>
+  </button>
+
+  <!-- ===== Main ===== -->
+  <main id="fm-main" style="position:relative;z-index:10;margin-left:120px;">
+
+    <!-- HERO -->
+    <section id="top" data-screen-label="Hero" style="min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: clamp(72px,8vh,90px) clamp(24px,5vw,84px) clamp(40px,6vh,72px); position: relative" data-hero-sec="">
+      <div id="fm-hero" style="display:contents;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid rgba(30,58,138,0.12);padding-bottom:14px;margin-bottom:clamp(20px,4vh,40px);">
+        <span data-anim="fm-rise" style="opacity:0;font-family:'Montserrat',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.32em;color:rgba(30,58,138,0.5);">PORTFOLIO — VOL.01</span>
+        <span data-anim="fm-rise" data-rd="120" style="opacity:0;font-family:'Montserrat',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.32em;color:#FF9E80;">SINCE　2026</span>
+      </div>
+
+      <div id="fm-hero-wrap" style="">
+        <h1 style="margin:0;font-family:'Montserrat',sans-serif;font-weight:800;font-size:clamp(58px,12vw,184px);line-height:0.86;letter-spacing:-0.045em;">
+          <span data-anim="fm-rise" data-rd="0" style="display:inline-block;opacity:0;color:#1E3A8A;">F</span><span data-anim="fm-rise" data-rd="55" style="display:inline-block;opacity:0;color:#1E3A8A;">U</span><span data-anim="fm-rise" data-rd="110" style="display:inline-block;opacity:0;color:#1E3A8A;">J</span><span data-anim="fm-rise" data-rd="165" style="display:inline-block;opacity:0;color:#1E3A8A;">I</span><span data-anim="fm-rise" data-rd="220" style="display:inline-block;opacity:0;color:#FF9E80;">M</span><span data-anim="fm-rise" data-rd="275" style="display:inline-block;opacity:0;color:#FF9E80;">O</span><span data-anim="fm-rise" data-rd="330" style="display:inline-block;opacity:0;color:#FF9E80;">M</span><span data-anim="fm-rise" data-rd="385" style="display:inline-block;opacity:0;color:#FF9E80;">O</span>
+        </h1>
+      </div>
+
+      <!-- PINK BAND -->
+      <div data-anim="fm-rise" data-rd="480" style="opacity:0;overflow:hidden;background:#FF9E80;padding:13px 0;transform:rotate(-1.1deg);margin:clamp(16px,3vh,30px) -6vw;box-shadow:0 10px 30px rgba(255,158,128,0.25);">
+        <div style="display:flex;width:max-content;animation:fm-marquee 24s linear infinite;">
+          <div style="display:flex;align-items:center;gap:30px;padding-right:30px;font-family:'Montserrat',sans-serif;font-weight:800;font-size:clamp(15px,1.8vw,24px);letter-spacing:0.05em;color:#fff;white-space:nowrap;"><span>WEB DESIGN</span><span style="opacity:.55;">✦</span><span>LP / EC</span><span style="opacity:.55;">✦</span><span>GRAPHIC</span><span style="opacity:.55;">✦</span><span>BRANDING</span><span style="opacity:.55;">✦</span><span>ふじもも DESIGN</span><span style="opacity:.55;">✦</span><span>OSAKA</span><span style="opacity:.55;">✦</span></div>
+          <div style="display:flex;align-items:center;gap:30px;padding-right:30px;font-family:'Montserrat',sans-serif;font-weight:800;font-size:clamp(15px,1.8vw,24px);letter-spacing:0.05em;color:#fff;white-space:nowrap;"><span>WEB DESIGN</span><span style="opacity:.55;">✦</span><span>LP / EC</span><span style="opacity:.55;">✦</span><span>GRAPHIC</span><span style="opacity:.55;">✦</span><span>BRANDING</span><span style="opacity:.55;">✦</span><span>ふじもも DESIGN</span><span style="opacity:.55;">✦</span><span>OSAKA</span><span style="opacity:.55;">✦</span></div>
+        </div>
+      </div>
+
+      <div data-anim="fm-rise" data-rd="540" style="opacity:0;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:clamp(24px,4vh,44px);flex-wrap:wrap;gap:8px;">
+        <span style="font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:clamp(14px,1.4vw,18px);color:#1E3A8A;letter-spacing:0.06em;">ふじもも ｜ Design</span>
+        <span style="font-family:'Montserrat',sans-serif;font-style:italic;font-weight:400;font-size:clamp(13px,1.3vw,17px);color:rgba(15,23,42,0.5);">All about design.</span>
+      </div>
+
+      <div id="fm-hero-cards" data-col2="" style="display:grid;grid-template-columns:1fr 1.2fr;gap:clamp(16px,2vw,28px);position:relative;">
+        <!-- Osaka stickers -->
+        
+        
+        <div style="position:absolute;top:18px;left:20px;z-index:3;background:#FF9E80;color:#fff;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.16em;padding:5px 12px;border-radius:99px;">IT'S ME</div><div data-anim="fm-rise" data-rd="600" style="opacity:0;position:relative;background:rgba(255,255,255,0.6);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.7);box-shadow:0 8px 32px rgba(31,38,135,0.06);border-radius:26px;padding:14px;overflow:visible;">
+          <img src="glico.png" alt="" class="fm-jerk2" style="position:absolute;z-index:6;top:-22px;right:-14px;width:clamp(96px,26vw,150px);height:auto;filter:drop-shadow(0 10px 18px rgba(15,23,42,0.18));pointer-events:none;">
+          <img src="tsutenkaku.png" alt="" class="fm-jerk1" style="position:absolute;z-index:6;left:-16px;bottom:-22px;width:clamp(60px,16vw,110px);height:auto;filter:drop-shadow(0 10px 16px rgba(15,23,42,0.16));pointer-events:none;">
+          
+          
+          
+        <image-slot id="hero-portrait" src="itsme-photo.png" fit="cover" style="display:block;width:100%;height:clamp(280px,34vw,420px);" shape="rounded" radius="18" placeholder="人物写真"></image-slot></div><div data-anim="fm-rise" data-rd="680" style="opacity:0;position:relative;background:rgba(255,255,255,0.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.8);box-shadow:0 8px 32px rgba(31,38,135,0.06);border-radius:26px;padding:clamp(26px,3vw,44px);display:flex;flex-direction:column;justify-content:center;overflow:visible;">
+          <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,158,128,0.12);filter:blur(20px);"></div>
+          <span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.24em;color:#FF9E80;">CONCEPT</span>
+          <h2 style="margin: 14px 0 18px; font-family: 'Noto Sans JP',sans-serif; font-weight: 700; font-size: clamp(24px,2.7vw,40px); line-height: 1.35; color: #1E3A8A; letter-spacing: 0.01em; position: relative">なんか、<div>めっちゃ<span style="font-size: clamp(24px, 2.7vw, 40px); letter-spacing: 0.01em; color: rgb(255, 158, 128);">ええ感じ</span><span style="font-size: clamp(24px, 2.7vw, 40px); letter-spacing: 0.01em;">。</span></div></h2>
+          <p style="margin:0 0 22px;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:clamp(12px,1.05vw,14px);line-height:1.95;color:rgba(15,23,42,0.78);max-width:42ch;">大阪出身の<span style="font-size: clamp(12px, 1.05vw, 14px);">Webデザイナー兼グラフィックデザイナー。</span><span style="font-size: clamp(12px, 1.05vw, 14px);">Webサイトからグラフィックまで、一貫して対応が可能です。</span>お客様にとことん寄り添い、「なんか、めっちゃええ感じ。」をお届けします。</p><div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.05em;color:#1E3A8A;background:rgba(30,58,138,0.06);border:1px solid rgba(30,58,138,0.1);padding:6px 13px;border-radius:99px;">Figma</span>
+            <span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.05em;color:#1E3A8A;background:rgba(30,58,138,0.06);border:1px solid rgba(30,58,138,0.1);padding:6px 13px;border-radius:99px;">Illustrator</span>
+            <span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.05em;color:#1E3A8A;background:rgba(30,58,138,0.06);border:1px solid rgba(30,58,138,0.1);padding:6px 13px;border-radius:99px;">HTML / CSS</span>
+            <span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.05em;color:#1E3A8A;background:rgba(30,58,138,0.06);border:1px solid rgba(30,58,138,0.1);padding:6px 13px;border-radius:99px;">JS / PHP</span>
+          </div><p></p><div><span style="color: rgb(15, 23, 42); font-size: medium;"></span><span style="font-size: clamp(12px, 1.05vw, 14px);"></span></div><p></p><div></div><p></p>
+          
+        <img src="mtfuji.png" alt="" class="fm-jerk3" style="position:absolute;z-index:5;right:-6px;bottom:-14px;width:clamp(120px,30vw,210px);height:auto;filter:drop-shadow(0 8px 14px rgba(15,23,42,0.12));pointer-events:none;"></div>
+      </div>
+
+      <div data-anim="fm-rise" data-rd="760" style="opacity: 0; display: flex; align-items: center; gap: 10px; margin-top: clamp(20px,3vh,36px); justify-content: center; flex-direction: column">
+        <span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.3em;color:rgba(30,58,138,0.4);">SCROLL</span>
+        <span style="font-size:14px;color:#FF9E80;animation:fm-bob 1.6s ease-in-out infinite;">↓</span>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="about" data-screen-label="About" style="padding:clamp(80px,12vh,150px) clamp(24px,5vw,84px);">
+      <span data-anim="fm-rise" style="opacity:0;display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:0.28em;color:#FF9E80;margin-bottom:8px;">01 — ABOUT</span><div data-col2="" style="display: grid; grid-template-columns: 1fr 1.3fr; gap: clamp(28px,5vw,80px); align-items: start; position: relative">
+        <div style="position:relative;">
+          <h2 data-anim="fm-rise" data-rd="100" style="opacity: 0; margin: 0; font-family: 'Noto Sans JP',sans-serif; font-weight: 700; font-size: clamp(34px,5vw,68px); line-height: 1.2; color: #1E3A8A; letter-spacing: 0.01em; position: relative">未経験上等。<br>いつも貪欲。</h2>
+          <span class="fm-vert" style="writing-mode: vertical-rl; font-family: 'Noto Sans JP',sans-serif; font-weight: 300; font-size: 13px; letter-spacing: 0.4em; color: rgba(30,58,138,0.4); margin-top: 24px; display: inline-block">大阪生まれ ｜ ふじもも</span>
+        </div>
+        <div>
+          <p data-anim="fm-rise" data-rd="160" style="opacity:0;margin:0 0 36px;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:clamp(13px,1.15vw,16px);line-height:2.1;color:rgba(15,23,42,0.82);">
+            もともと大学は観光学部出身でしたが、<span style="font-size: clamp(13px, 1.15vw, 16px);">コロナ禍で「行きたかった業界、まさかの全滅…。」　しかし</span><span style="font-size: clamp(13px, 1.15vw, 16px);">、そこで折れないのがふじもも流です。畑違いの業界へ、思いきって飛び込みました。未経験ながら2年目で本社異動を勝ち取り、大手上場企業のECサイトのデザイン・制作担当に。</span></p><p data-anim="fm-rise" data-rd="160" style="opacity: 0; margin: 0 0 36px; font-family: 'Noto Sans JP',sans-serif; font-weight: 300; font-size: clamp(13px,1.15vw,16px); line-height: 2.1; color: rgba(15,23,42,0.82); position: relative"><span style="color: rgb(15, 23, 42); font-size: medium;">デザインに触れる中で、「もっと上手になりたい」「お客さんにもっと喜んでほしい」</span><span style="font-size: clamp(13px, 1.15vw, 16px); color: rgb(15, 23, 42);">――そんな欲張りな想いでベンチャーへ。</span><span style="color: rgb(15, 23, 42); font-size: clamp(13px, 1.15vw, 16px);">右も左も分からないまま、体当たりで</span><span style="font-size: clamp(13px, 1.15vw, 16px); color: rgb(30, 58, 138); border-bottom: 2px solid rgba(255, 158, 128, 0.6);">寝る間も惜しんで猛勉強</span><span style="color: rgb(15, 23, 42); font-size: clamp(13px, 1.15vw, 16px);">。</span><span style="color: rgb(15, 23, 42); font-size: clamp(13px, 1.15vw, 16px);">覚えた知識は勉強会や資料にして大放出、気づけば</span><span style="font-size: clamp(13px, 1.15vw, 16px); color: rgb(30, 58, 138); border-bottom: 2px solid rgba(255, 158, 128, 0.6);">デザインチームの責任者</span><span style="color: rgb(15, 23, 42); font-size: clamp(13px, 1.15vw, 16px);">になってました。</span></p><div><br></div><p></p><p></p>
+          <div data-col3="" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;border-top:1px solid rgba(30,58,138,0.12);padding-top:30px;">
+            <div data-anim="fm-rise" data-rd="240" class="fm-stat" style="opacity:0;">
+              <div style="display:flex;align-items:baseline;"><span data-count="2" data-suffix="" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:clamp(34px,4vw,56px);color:#FF9E80;line-height:1;">0</span><span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:14px;color:#FF9E80;margin-left:4px;">年目</span></div>
+              <p style="margin:8px 0 0;font-family:'Noto Sans JP',sans-serif;font-weight:400;font-size:11px;color:rgba(15,23,42,0.6);">で本社異動</p>
+            </div>
+            <div data-anim="fm-rise" data-rd="340" class="fm-stat" style="opacity:0;">
+              <div style="display:flex;align-items:baseline;"><span data-count="7" data-suffix="+" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:clamp(34px,4vw,56px);color:#1E3A8A;line-height:1;">50+</span></div>
+              <p style="margin:8px 0 0;font-family:'Noto Sans JP',sans-serif;font-weight:400;font-size:11px;color:rgba(15,23,42,0.6);">制作実績</p>
+            </div>
+            <div data-anim="fm-rise" data-rd="440" class="fm-stat" style="opacity:0;">
+              <span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:clamp(28px,3.4vw,48px);color:#1E3A8A;line-height:1;display:block;">LEAD</span>
+              <p style="margin:8px 0 0;font-family:'Noto Sans JP',sans-serif;font-weight:400;font-size:11px;color:rgba(15,23,42,0.6);">チーム責任者</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </section>
+
+    <!-- WORKS -->
+    <section id="works" data-screen-label="Works" style="padding: clamp(80px,12vh,140px) 0; position: relative; overflow: hidden; background: linear-gradient(160deg, #1E3A8A 0%, #142a6b 55%, #0E1F52 100%)">
+      <div style="position:absolute;inset:0;opacity:0.4;background-size:28px 28px;background-image:linear-gradient(to right,rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,0.03) 1px,transparent 1px);pointer-events:none;"></div>
+      <img src="./osaka_fjmm_pattern-mqsps406.png" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.2; mix-blend-mode: screen; pointer-events: none">
+      <div style="padding:0 clamp(24px,5vw,84px);position:relative;text-align:center;">
+        <span data-anim="fm-rise" style="opacity:0;display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:0.28em;color:#FF9E80;margin-bottom:12px;">02 — WORKS</span>
+        
+        <h2 data-anim="fm-rise" data-rd="100" style="opacity: 0; margin: 0 0 10px; font-family: 'Montserrat',sans-serif; font-weight: 800; font-size: clamp(38px,6vw,80px); line-height: 0.92; letter-spacing: -0.03em; color: #fff; position: relative">SELECTED WORKS</h2><p data-anim="fm-rise" data-rd="180" style="opacity:0;margin:0 auto;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:12px;line-height:1.9;color:rgba(255,255,255,0.5);">HP・LP・EC・チラシ・パンフレット・名刺・プレゼン資料…なんでも対応します。</p>
+      </div>
+
+      
+
+      <!-- centered controls -->
+      <div id="fm-carousel" style="position:relative;width:100%;overflow:hidden;padding:clamp(34px,5vh,60px) 0;margin-top:8px;">
+        <div data-track="" style="display:flex;align-items:center;gap:24px;will-change:transform;cursor:grab;">
+          <div data-card="" style="flex:0 0 auto;width:clamp(240px,60vw,380px);opacity:0.8;transform:scale(0.82);">
+            <div style="position:relative;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:14px;left:14px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.14em;color:#0F172A;background:#FF9E80;padding:4px 10px;border-radius:99px;">01</span><image-slot id="work-1" src="meishi-temp.png" style="display: block; width: 100%; height: clamp(220px,24vw,280px)" shape="rect" placeholder="WEB / HP"></image-slot></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:16px;color:#fff;">コーポレートサイト</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">HP</span></div>
+          </div>
+          <div data-card="" style="flex:0 0 auto;width:clamp(240px,60vw,380px);opacity:0.8;transform:scale(0.82);">
+            <div style="position:relative;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:14px;left:14px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.14em;color:#0F172A;background:#FF9E80;padding:4px 10px;border-radius:99px;">02</span><image-slot id="work-2" src="meishi-temp.png" style="display:block;width:100%;height:clamp(220px,24vw,280px);" shape="rect" placeholder="LANDING PAGE / LP"></image-slot></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:16px;color:#fff;">ランディングページ</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">LP</span></div>
+          </div>
+          <div data-card="" style="flex:0 0 auto;width:clamp(240px,60vw,380px);opacity:0.8;transform:scale(0.82);">
+            <div style="position:relative;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:14px;left:14px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.14em;color:#0F172A;background:#FF9E80;padding:4px 10px;border-radius:99px;">03</span><image-slot id="work-3" src="meishi-temp.png" style="display:block;width:100%;height:clamp(220px,24vw,280px);" shape="rect" placeholder="EC SITE"></image-slot></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:16px;color:#fff;">ECサイト</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">EC</span></div>
+          </div>
+          <div data-card="" style="flex:0 0 auto;width:clamp(240px,60vw,380px);opacity:0.8;transform:scale(0.82);">
+            <div style="position:relative;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:14px;left:14px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.14em;color:#0F172A;background:#FF9E80;padding:4px 10px;border-radius:99px;">04</span><image-slot id="work-4" src="meishi-temp.png" style="display:block;width:100%;height:clamp(220px,24vw,280px);" shape="rect" placeholder="PAMPHLET"></image-slot></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:16px;color:#fff;">パンフレット</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">DTP</span></div>
+          </div>
+          <div data-card="" style="flex:0 0 auto;width:clamp(240px,60vw,380px);opacity:0.8;transform:scale(0.82);">
+            <div style="position:relative;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:14px;left:14px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.14em;color:#0F172A;background:#FF9E80;padding:4px 10px;border-radius:99px;">05</span><image-slot id="work-5" src="meishi-temp.png" style="display:block;width:100%;height:clamp(220px,24vw,280px);" shape="rect" placeholder="FLYER / DTP"></image-slot></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:16px;color:#fff;">チラシ / DTP</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">DTP</span></div>
+          </div>
+          <div data-card="" style="flex:0 0 auto;width:clamp(240px,60vw,380px);opacity:0.8;transform:scale(0.82);">
+            <div style="position:relative;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:14px;left:14px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.14em;color:#0F172A;background:#FF9E80;padding:4px 10px;border-radius:99px;">06</span><image-slot id="work-6" src="meishi-temp.png" style="display:block;width:100%;height:clamp(220px,24vw,280px);" shape="rect" placeholder="BUSINESS CARD"></image-slot></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:16px;color:#fff;">名刺</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">CARD</span></div>
+          </div>
+          <div data-card="" style="flex:0 0 auto;width:clamp(240px,60vw,380px);opacity:0.8;transform:scale(0.82);">
+            <div style="position:relative;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:14px;left:14px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.14em;color:#0F172A;background:#FF9E80;padding:4px 10px;border-radius:99px;">07</span><image-slot id="work-7" src="meishi-temp.png" style="display:block;width:100%;height:clamp(220px,24vw,280px);" shape="rect" placeholder="PRESENTATION DECK"></image-slot></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:16px;color:#fff;">プレゼン資料</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">DECK</span></div>
+          </div>
+        </div>
+      </div><div style="display:flex;flex-direction:column;align-items:center;gap:18px;padding:8px clamp(24px,5vw,84px) 0;position:relative;">
+        <div style="display:flex;align-items:center;gap:18px;">
+          <button data-arrow="left" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,158,128,0.5); background: #FF9E80; color: #0F172A; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center">←</button>
+          <div data-dots="" style="display: flex; gap: 9px; align-items: center; width: 135px"></div>
+          <button data-arrow="right" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,158,128,0.5); background: #FF9E80; color: #0F172A; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center">→</button>
+        </div>
+        <button data-works-more="" style="margin-top: 14px; display: inline-flex; align-items: center; gap: 10px; font-family: 'Montserrat',sans-serif; font-weight: 800; font-size: 12px; letter-spacing: 0.16em; color: #0E1F52; background: #fff; border: none; border-radius: 99px; padding: 16px 30px; cursor: pointer; box-shadow: 0 10px 24px rgba(0,0,0,0.22); width: 250px; justify-content: space-around; flex-direction: row">VIEW MORE WORKS <span style="font-size:15px;">→</span></button>
+      </div>
+
+      <!-- ALL WORKS overlay (wipes over the right column) -->
+      <div id="fm-works-overlay" style="display:none;position:fixed;top:0;right:0;bottom:0;left:120px;z-index:65;background:linear-gradient(160deg,#1E3A8A 0%,#142a6b 55%,#0E1F52 100%);transform:translateX(100%);overflow:hidden;">
+        <div style="position:absolute;inset:0;opacity:0.4;background-size:28px 28px;background-image:linear-gradient(to right,rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,0.03) 1px,transparent 1px);pointer-events:none;"></div>
+        <img src="allworks-bg.png" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.35;mix-blend-mode:screen;pointer-events:none;">
+        <div data-ov-content="" style="position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:clamp(28px,5vw,64px) clamp(24px,5vw,72px) clamp(60px,8vh,90px);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:clamp(28px,5vh,52px);">
+            <div>
+              <span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:0.28em;color:#FF9E80;margin-bottom:12px;">ALL WORKS — 制作実績</span>
+              <h2 style="margin:0;font-family:'Montserrat',sans-serif;font-weight:800;font-size:clamp(34px,6vw,76px);line-height:0.92;letter-spacing:-0.03em;color:#fff;">ALL WORKS</h2>
+              <p style="margin:14px 0 0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.9;color:rgba(255,255,255,0.55);max-width:46ch;">これまで手がけた制作物の一部です。Webから紙モノまで、ジャンル問わず「ええやん！」を詰め込んでます。</p>
+            </div>
+            <button data-works-close="" style="flex-shrink:0;display:inline-flex;align-items:center;gap:8px;font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:0.12em;color:#0E1F52;background:#fff;border:none;border-radius:99px;padding:13px 22px;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,0.18);"><span style="font-size:14px;">←</span> WORKSへ戻る</button>
+          </div>
+
+          <div data-ov-tabs="" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:clamp(24px,4vh,40px);">
+            <button data-filter="all" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:0.14em;cursor:pointer;border-radius:99px;padding:11px 22px;border:1px solid #FF9E80;background:#FF9E80;color:#0E1F52;">ALL</button>
+            <button data-filter="web" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:0.14em;cursor:pointer;border-radius:99px;padding:11px 22px;border:1px solid #fff;background:#fff;color:#0E1F52;">WEB</button>
+            <button data-filter="graphic" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:0.14em;cursor:pointer;border-radius:99px;padding:11px 22px;border:1px solid #fff;background:#fff;color:#0E1F52;">GRAPHIC</button>
+            <button data-filter="brand" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:0.14em;cursor:pointer;border-radius:99px;padding:11px 22px;border:1px solid #fff;background:#fff;color:#0E1F52;">BRAND</button>
+            <button data-filter="sns" style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:0.14em;cursor:pointer;border-radius:99px;padding:11px 22px;border:1px solid #fff;background:#fff;color:#0E1F52;">SNS</button>
+          </div>
+
+          <div data-ov-grid="" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:clamp(16px,2vw,24px);">
+            <div data-works-card="" data-genre="web" data-work-open="1" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">01</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-1" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="HP"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">コーポレートサイト</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">HP</span></div></div>
+            <div data-works-card="" data-genre="web" data-work-open="2" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">02</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-2" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="LP"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">ランディングページ</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">LP</span></div></div>
+            <div data-works-card="" data-genre="web" data-work-open="3" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">03</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-3" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="EC"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">ECサイト</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">EC</span></div></div>
+            <div data-works-card="" data-genre="graphic" data-work-open="4" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">04</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-4" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="DTP"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">パンフレット</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">DTP</span></div></div>
+            <div data-works-card="" data-genre="graphic" data-work-open="5" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">05</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-5" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="DTP"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">チラシ / DTP</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">DTP</span></div></div>
+            <div data-works-card="" data-genre="brand" data-work-open="6" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">06</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-6" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="CARD"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">名刺</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">CARD</span></div></div>
+            <div data-works-card="" data-genre="graphic" data-work-open="7" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">07</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-7" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="DECK"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">プレゼン資料</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">DECK</span></div></div>
+            <div data-works-card="" data-genre="web" data-work-open="8" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">08</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-8" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="HP"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">飲食店サイト</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">HP</span></div></div>
+            <div data-works-card="" data-genre="web" data-work-open="9" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">09</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-9" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="LP"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">キャンペーンLP</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">LP</span></div></div>
+            <div data-works-card="" data-genre="web" data-work-open="10" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">10</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-10" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="EC"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">アパレルEC</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">EC</span></div></div>
+            <div data-works-card="" data-genre="graphic" data-work-open="11" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">11</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-11" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="DTP"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">イベントポスター</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">DTP</span></div></div>
+            <div data-works-card="" data-genre="brand" data-work-open="12" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">12</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-12" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="LOGO"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">ロゴ・ブランディング</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">LOGO</span></div></div>
+            <div data-works-card="" data-genre="graphic" data-work-open="13" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">13</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-13" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="WEB"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">バナーセット</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">WEB</span></div></div>
+            <div data-works-card="" data-genre="graphic" data-work-open="14" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">14</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-14" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="DTP"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">メニュー表</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">DTP</span></div></div>
+            <div data-works-card="" data-genre="sns" data-work-open="15" style="cursor:pointer;"><div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);"><span style="position:absolute;top:12px;left:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.14em;color:#0E1F52;background:#FF9E80;padding:4px 10px;border-radius:99px;">15</span><span style="position:absolute;bottom:12px;right:12px;z-index:3;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.08em;color:#fff;background:rgba(14,31,82,0.7);padding:5px 11px;border-radius:99px;">VIEW ↗</span><image-slot id="work-more-15" src="meishi-temp.png" style="display:block;width:100%;height:clamp(190px,18vw,230px);" shape="rect" placeholder="SNS"></image-slot></div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;"><h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;color:#fff;">SNS用クリエイティブ</h3><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.4);">SNS</span></div></div>
+          </div>
+
+          <div data-ov-detail="" style="display:none;"><button data-detail-back="" style="display:inline-flex;align-items:center;gap:8px;font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:0.12em;color:#0E1F52;background:#fff;border:none;border-radius:99px;padding:12px 22px;cursor:pointer;margin-bottom:clamp(24px,4vh,40px);"><span style="font-size:14px;">←</span> 一覧へ戻る</button>
+          <div data-detail="1" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-1" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="HP"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">HP — WEB DESIGN</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">コーポレートサイト</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2025.06</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">コーポレート I様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">会社の信頼感が一目で伝わる構成に。情報設計から丁寧に組み立て、問い合わせまでの動線を最短化しました。</p></div></div></div></div></div>
+          <div data-detail="2" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-2" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="LP"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">LP — WEB DESIGN</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">ランディングページ</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2025.05</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">サービス J様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">ファーストビューで心を掴む設計。スクロールするほど熱が伝わる、勢い重視の一枚に仕上げました。</p></div></div></div></div></div>
+          <div data-detail="3" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-3" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="EC"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">EC — WEB DESIGN</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">ECサイト</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2025.03</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">物販 K様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">ブランドの世界観と買いやすさを両立。回遊したくなる導線と決済までのストレスレスを意識しました。</p></div></div></div></div></div>
+          <div data-detail="4" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-4" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="DTP"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">DTP — GRAPHIC</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">パンフレット</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2025.01</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">メーカー L様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">手に取った瞬間の質感まで計算。読み手の視線を誘導する誌面で、伝えたい順に伝わる構成にしました。</p></div></div></div></div></div>
+          <div data-detail="5" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-5" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="DTP"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">DTP — GRAPHIC</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">チラシ / DTP</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2024.10</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">店舗 M様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">遠目でもパッと目を引く配色とコピー。限られた紙面でも、要点がスッと頭に入る情報整理にこだわりました。</p></div></div></div></div></div>
+          <div data-detail="6" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-6" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="CARD"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">CARD — BRANDING</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">名刺</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2024.08</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">個人事業 N様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">渡した瞬間に印象に残る一枚へ。ロゴと世界観を凝縮し、会話のきっかけになるデザインを目指しました。</p></div></div></div></div></div>
+          <div data-detail="7" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-7" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="DECK"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">DECK — GRAPHIC</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">プレゼン資料</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2024.05</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">企業 O様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">伝わる資料は、見た目より構成。図解とリズムで、聞き手が置いていかれない流れを設計しました。</p></div></div></div></div></div>
+          <div data-detail="8" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-8" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="HP"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">HP — WEB DESIGN</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">飲食店サイト</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2025.04</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">飲食店 A様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">スマホでの見やすさを最優先。シズル感のある写真を主役に、予約までの動線をとことん短く設計しました。</p></div></div></div></div></div>
+          <div data-detail="9" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-9" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="LP"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">LP — WEB DESIGN</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">キャンペーンLP</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2025.02</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">メーカー B様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">「読ませる」より「感じさせる」構成に。スクロールするほど熱が伝わる、勢い重視のLPに仕上げました。</p></div></div></div></div></div>
+          <div data-detail="10" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-10" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="EC"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">EC — WEB DESIGN</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">アパレルEC</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2024.11</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">アパレル C様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">ブランドの世界観を崩さず、買い物のしやすさを両立。余白とフォントで「ちょっと上質」を演出しました。</p></div></div></div></div></div>
+          <div data-detail="11" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-11" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="DTP"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">DTP — GRAPHIC</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">イベントポスター</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2024.09</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">自治体 D様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">遠くからでもパッと目を引く配色とタイポ。情報量が多くても迷わせない優先順位づけにこだわりました。</p></div></div></div></div></div>
+          <div data-detail="12" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-12" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="LOGO"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">LOGO — BRANDING</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">ロゴ・ブランディング</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2024.06</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">スタートアップ E様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">由来をとことんヒアリングして、意味の宿るカタチに。名刺やサイトまで一貫して映えるよう設計しました。</p></div></div></div></div></div>
+          <div data-detail="13" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-13" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="WEB"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">WEB — GRAPHIC</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">バナーセット</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2024.03</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">EC事業 F様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">サイズ違いでもブレない訴求を意識。数字とコピーの見せ方で、思わずクリックしたくなる仕上がりに。</p></div></div></div></div></div>
+          <div data-detail="14" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-14" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="DTP"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">DTP — GRAPHIC</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">メニュー表</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2023.12</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">カフェ G様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">おいしそうに見える写真配置と価格の読みやすさを両立。お店の雰囲気に馴染むあしらいにしました。</p></div></div></div></div></div>
+          <div data-detail="15" style="display:none;"><div data-col2="" style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:clamp(20px,3vw,52px);align-items:start;"><div style="border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);"><image-slot id="work-detail-15" src="meishi-temp.png" style="display:block;width:100%;height:clamp(280px,42vh,520px);" shape="rect" placeholder="SNS"></image-slot></div><div><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;margin-bottom:12px;">SNS — SNS CREATIVE</span><h3 style="margin:0 0 8px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(24px,3vw,38px);line-height:1.25;color:#fff;">SNS用クリエイティブ</h3><div style="display:flex;flex-direction:column;margin-top:18px;"><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">作成時期 / DATE</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">2023.10</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">企業様 / CLIENT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:15px;line-height:1.5;color:rgba(255,255,255,0.92);">ブランド H様</p></div><div style="border-top:1px solid rgba(255,255,255,0.14);padding:16px 0;"><span style="display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:9px;letter-spacing:0.18em;color:#FF9E80;margin-bottom:7px;">こだわりポイント / POINT</span><p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(255,255,255,0.92);">フィードで埋もれない一枚目を追求。シリーズで並べたときの統一感まで計算してデザインしました。</p></div></div></div></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CAREER -->
+    
+
+    <!-- MARQUEE -->
+    <section id="career" data-screen-label="Career" style="padding:clamp(80px,12vh,150px) clamp(24px,5vw,84px);">
+      <span data-anim="fm-rise" style="opacity:0;display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:0.28em;color:#FF9E80;margin-bottom:8px;">03 — CAREER</span>
+      <div style="display:flex;align-items:flex-end;gap:clamp(10px,2vw,28px);flex-wrap:wrap;margin:0 0 clamp(36px,6vh,64px);"><h2 data-anim="fm-rise" data-rd="100" style="opacity: 0; margin: 0; font-family: 'Noto Sans JP',sans-serif; font-weight: 700; font-size: clamp(34px,5vw,68px); line-height: 1.2; color: #1E3A8A; position: relative">回り道でも、ええ感じ。</h2><img src="shirankedo.png" alt="しらんけど" class="fm-jerk1" style="width:clamp(96px,15vw,180px);height:auto;flex-shrink:0;margin-bottom:clamp(4px,0.8vw,12px);filter:drop-shadow(0 8px 14px rgba(15,23,42,0.1));pointer-events:none;"></div>
+      <div style="display:flex;flex-direction:column;">
+        <div data-anim="fm-rise" style="opacity:0;display:grid;grid-template-columns:90px 1fr;gap:clamp(14px,3vw,48px);align-items:start;border-top:1px solid rgba(30,58,138,0.12);padding:28px 0;">
+          <span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;letter-spacing:0.06em;color:#FF9E80;">CH.01</span>
+          <div data-col2="" style="display:grid;grid-template-columns:1fr 1.4fr;gap:clamp(10px,2vw,40px);align-items:baseline;">
+            <h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(17px,1.7vw,22px);color:#1E3A8A;">元々は観光学部出身でした</h3>
+            <p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:clamp(12px,1vw,14px);line-height:1.85;color:rgba(15,23,42,0.7);">コロナ禍で、行きたかった業界がまさかの全滅。落ち込むヒマもなく就活は続く。「しゃーないし、違う業界に行ってみよ」と心機一転。未経験で飛び込んだ業界で待ち受けていたのは、深い深いデザインの沼でした。</p>
+          </div>
+        </div>
+        <div data-anim="fm-rise" data-rd="80" style="opacity:0;display:grid;grid-template-columns:90px 1fr;gap:clamp(14px,3vw,48px);align-items:start;border-top:1px solid rgba(30,58,138,0.12);padding:28px 0;">
+          <span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;letter-spacing:0.06em;color:#FF9E80;">CH.02</span>
+          <div data-col2="" style="display:grid;grid-template-columns:1fr 1.4fr;gap:clamp(10px,2vw,40px);align-items:baseline;">
+            <h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(17px,1.7vw,22px);color:#1E3A8A;">大手上場企業に就職</h3>
+            <p style="margin: 0; font-family: 'Noto Sans JP',sans-serif; font-weight: 300; font-size: clamp(12px,1vw,14px); line-height: 1.85; color: rgba(15,23,42,0.7); position: relative">がむしゃらに食らいついて、2年目で本社異動。大手上場企業のECサイトにデザイン・制作担当として携わり、現場で０からデザインに関する知識を鍛えました。</p>
+          </div>
+        </div>
+        <div data-anim="fm-rise" data-rd="160" style="opacity:0;display:grid;grid-template-columns:90px 1fr;gap:clamp(14px,3vw,48px);align-items:start;border-top:1px solid rgba(30,58,138,0.12);padding:28px 0;">
+          <span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;letter-spacing:0.06em;color:#FF9E80;">CH.03</span>
+          <div data-col2="" style="display:grid;grid-template-columns:1fr 1.4fr;gap:clamp(10px,2vw,40px);align-items:baseline;">
+            <h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(17px,1.7vw,22px);color:#1E3A8A;">心機一転、ベンチャー企業へ</h3>
+            <p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:clamp(12px,1vw,14px);line-height:1.85;color:rgba(15,23,42,0.7);">そんな中、「もっとデザインを極めたい」と思うようになり、そんな中「うちの会社でデザイナーをしてほしい！」と声がかかり、「これはもう伸びしろしかないやろ」と、迷う暇もなく一念発起で退社。畑違いのベンチャーへ体当たりし、無我夢中で勉強。覚えたことは、ぜんぶ会社に還元しました。</p>
+          </div>
+        </div>
+        <div data-anim="fm-rise" data-rd="240" style="opacity:0;display:grid;grid-template-columns:90px 1fr;gap:clamp(14px,3vw,48px);align-items:start;border-top:1px solid rgba(255,158,128,0.5);border-bottom:1px solid rgba(255,158,128,0.5);padding:28px 0;background:rgba(255,158,128,0.05);border-radius:0 0 18px 18px;">
+          <span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;letter-spacing:0.06em;color:#FF9E80;display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:#FF9E80;"></span>NOW</span>
+          <div data-col2="" style="display:grid;grid-template-columns:1fr 1.4fr;gap:clamp(10px,2vw,40px);align-items:baseline;">
+            <h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(18px,1.9vw,24px);color:#1E3A8A;">デザインチーム責任者</h3>
+            <p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:clamp(12px,1vw,14px);line-height:1.85;color:rgba(15,23,42,0.78);">今ではチームを引っ張りつつ、メンバーの成長にも伴走中です。その上で、お客さんにとことん寄り添い、「なんか、めっちゃええ感じ。」と思ってもらえるように尽力中。</p>
+          </div>
+        </div>
+      </div>
+    </section><div style="overflow:hidden;background:#1E3A8A;padding:16px 0;transform:rotate(0.8deg);margin:0 -6vw 0 0;">
+      <div style="display:flex;width:max-content;animation:fm-marquee-rev 26s linear infinite;">
+        <div style="display:flex;align-items:center;gap:30px;padding-right:30px;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:clamp(15px,1.8vw,24px);color:#fff;white-space:nowrap;"><span style="color:#FF9E80;">●</span><span>話しやすさ、ピカイチ</span><span style="color:#FF9E80;">●</span><span>とことん寄り添う</span><span style="color:#FF9E80;">●</span><span>「なんか、めっちゃええ感じやん。」</span><span style="color:#FF9E80;">●</span><span>返信、めっちゃ早い</span></div>
+        <div style="display:flex;align-items:center;gap:30px;padding-right:30px;font-family:'Noto Sans JP',sans-serif;font-weight:500;font-size:clamp(15px,1.8vw,24px);color:#fff;white-space:nowrap;"><span style="color:#FF9E80;">●</span><span>話しやすさ、ピカイチ</span><span style="color:#FF9E80;">●</span><span>とことん寄り添う</span><span style="color:#FF9E80;">●</span><span>「思てたより、ええやん！」</span><span style="color:#FF9E80;">●</span><span>返信、めっちゃ早い</span></div>
+      </div>
+    </div>
+
+    <!-- WHY -->
+    <section id="why" data-screen-label="Why Me" style="padding: clamp(80px,12vh,150px) clamp(24px,5vw,84px); position: relative">
+      <span data-anim="fm-rise" style="opacity:0;display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:0.28em;color:#FF9E80;margin-bottom:8px;">04 — WHY ME</span>
+      <h2 data-anim="fm-rise" data-rd="100" style="opacity: 0; margin: 0 0 clamp(36px,6vh,64px); font-family: 'Noto Sans JP',sans-serif; font-weight: 700; font-size: clamp(34px,5vw,68px); line-height: 1.2; color: #1E3A8A; position: relative">選んでもらえる、<span style="color:#FF9E80;">3つ</span>のワケ。</h2>
+      <div data-col3="" style="display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2vw,28px);">
+        
+        <div data-anim="fm-rise" style="opacity:0;position:relative;background:rgba(255,255,255,0.65);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.8);box-shadow:0 8px 32px rgba(31,38,135,0.06);border-radius:26px;padding:clamp(24px,2.6vw,40px);overflow:hidden;min-height:240px;">
+          <div style="display:flex;align-items:baseline;gap:10px;position:relative;">
+            <span class="fm-why-num" style="font-family: 'Montserrat',sans-serif; font-weight: 800; font-size: 24px; letter-spacing: 0.08em; color: #FF9E80">01</span>
+            <span class="fm-why-en" style="font-family: 'Montserrat',sans-serif; font-weight: 800; font-size: clamp(12px,1.3vw,16px); letter-spacing: 0.1em; color: rgba(30,58,138,0.32); opacity: 0.5">SUGGESTION</span>
+          </div>
+          <h3 class="fm-why-h" style="margin:18px 0 12px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(17px,1.6vw,21px);color:#1E3A8A;position:relative;">寄り添う提案力</h3>
+          <p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(15,23,42,0.75);position:relative;">とことんヒアリングして、お客さん自身も気づいてない「ほんまの課題」を言語化。貪欲さと、おもてなしの精神で、期待のナナメ上までご提案します。</p>
+        </div><div data-anim="fm-rise" data-rd="130" style="opacity:0;position:relative;background:rgba(255,255,255,0.65);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.8);box-shadow:0 8px 32px rgba(31,38,135,0.06);border-radius:26px;padding:clamp(24px,2.6vw,40px);overflow:hidden;min-height:240px;">
+          <div style="display:flex;align-items:baseline;gap:10px;position:relative;">
+            <span class="fm-why-num" style="font-family: 'Montserrat',sans-serif; font-weight: 800; font-size: 24px; letter-spacing: 0.08em; color: #FF9E80">02</span>
+            <span class="fm-why-en" style="font-family: 'Montserrat',sans-serif; font-weight: 800; font-size: clamp(12px,1.3vw,16px); letter-spacing: 0.1em; color: rgba(30,58,138,0.32); opacity: 0.5">APPROACHABLE</span>
+          </div>
+          <h3 class="fm-why-h" style="margin:18px 0 12px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(17px,1.6vw,21px);color:#1E3A8A;position:relative;">早いレスポンスと、関西人らしい親しみやすさ</h3>
+          <p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(15,23,42,0.75);position:relative;">返信が早く、そして初対面でも話しやすい。専門用語で煙に巻いたりしません。「めっちゃ気軽に相談できるやん」と、思ってもらえる距離感を大事にしてます。</p>
+        </div>
+        <div data-anim="fm-rise" data-rd="260" style="opacity:0;position:relative;background:rgba(255,255,255,0.65);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.8);box-shadow:0 8px 32px rgba(31,38,135,0.06);border-radius:26px;padding:clamp(24px,2.6vw,40px);overflow:hidden;min-height:240px;">
+          <div style="display:flex;align-items:baseline;gap:10px;position:relative;">
+            <span class="fm-why-num" style="font-family: 'Montserrat',sans-serif; font-weight: 800; font-size: 24px; letter-spacing: 0.08em; color: #FF9E80">03</span>
+            <span class="fm-why-en" style="font-family: 'Montserrat',sans-serif; font-weight: 800; font-size: clamp(12px,1.3vw,16px); letter-spacing: 0.1em; color: rgba(30,58,138,0.32); opacity: 0.5">AMBITION</span>
+          </div>
+          <h3 class="fm-why-h" style="margin:18px 0 12px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(17px,1.6vw,21px);color:#1E3A8A;position:relative;">止まらない向上心</h3>
+          <p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.95;color:rgba(15,23,42,0.75);position:relative;">新しい分野や環境にも「めっちゃおもろそう！」で飛び込むタイプです。いつも何かしら勉強中で、ツールも知識も日々アップデートしながら、これからもクオリティを磨き続けます。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SKILLS -->
+    
+
+    <!-- CONTACT -->
+    <section id="skills" data-screen-label="Skills" style="padding: clamp(80px,12vh,150px) clamp(24px,5vw,84px); position: relative">
+      <span data-anim="fm-rise" style="opacity: 0; display: block; font-family: 'Montserrat',sans-serif; font-weight: 800; font-size: 11px; letter-spacing: 0.28em; color: #FF9E80; margin-bottom: 8px; position: relative">05 — SKILLS &amp; LICENSE</span>
+      <div style="display:flex;align-items:flex-end;gap:clamp(10px,2vw,28px);flex-wrap:wrap;margin:0 0 clamp(36px,6vh,64px);"><h2 data-anim="fm-rise" data-rd="100" style="opacity: 0; margin: 0; font-family: 'Noto Sans JP',sans-serif; font-weight: 700; font-size: clamp(34px,5vw,68px); line-height: 1.2; color: #1E3A8A; position: relative">つくれるもの。</h2><img src="paint.png" alt="パレット" class="fm-jerk2" style="width:clamp(104px,16vw,190px);height:auto;flex-shrink:0;margin-bottom:clamp(4px,0.8vw,12px);filter:drop-shadow(0 8px 14px rgba(15,23,42,0.1));pointer-events:none;"></div>
+
+      <div data-col2="" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: clamp(28px,5vw,72px); align-items: start; position: relative">
+        <div style="display: flex; flex-direction: column; gap: 26px; position: relative">
+          <div data-anim="fm-rise" style="opacity:0;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;"><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;">Figma / Canva</span><span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;color:#FF9E80;">95</span></div>
+            <div style="height:6px;background:rgba(30,58,138,0.08);border-radius:99px;overflow:hidden;"><div data-grow="" style="height: 100%; width: 80%; background: linear-gradient(90deg,#1E3A8A,#FF9E80); border-radius: 99px; transform-origin: left; transform: scaleX(0)"></div></div>
+          </div>
+          <div data-anim="fm-rise" data-rd="80" style="opacity:0;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;"><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;">Illustrator</span><span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;color:#FF9E80;">90</span></div>
+            <div style="height:6px;background:rgba(30,58,138,0.08);border-radius:99px;overflow:hidden;"><div data-grow="" style="height: 100%; width: 85%; background: linear-gradient(90deg,#1E3A8A,#FF9E80); border-radius: 99px; transform-origin: left; transform: scaleX(0)"></div></div>
+          </div>
+          <div data-anim="fm-rise" data-rd="160" style="opacity:0;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;"><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;">HTML / CSS</span><span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;color:#FF9E80;">88</span></div>
+            <div style="height:6px;background:rgba(30,58,138,0.08);border-radius:99px;overflow:hidden;"><div data-grow="" style="height:100%;width:88%;background:linear-gradient(90deg,#1E3A8A,#FF9E80);border-radius:99px;transform-origin:left;transform:scaleX(0);"></div></div>
+          </div>
+          <div data-anim="fm-rise" data-rd="240" style="opacity:0;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;"><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;">JavaScript / PHP</span><span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;color:#FF9E80;">75</span></div>
+            <div style="height:6px;background:rgba(30,58,138,0.08);border-radius:99px;overflow:hidden;"><div data-grow="" style="height:100%;width:75%;background:linear-gradient(90deg,#1E3A8A,#FF9E80);border-radius:99px;transform-origin:left;transform:scaleX(0);"></div></div>
+          </div><div data-anim="fm-rise" data-rd="240" style="opacity:0;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;"><span style="font-family: Montserrat, sans-serif; font-weight: 700; font-size: 14px; color: rgb(30, 58, 138);">やる気</span><span style="font-family: Montserrat, sans-serif; font-weight: 800; font-size: 13px; color: rgb(255, 158, 128);">100</span></div>
+            <div style="height:6px;background:rgba(30,58,138,0.08);border-radius:99px;overflow:hidden;"><div data-grow="" style="height: 100%; width: 100%; background: linear-gradient(90deg,#1E3A8A,#FF9E80); border-radius: 99px; transform-origin: left; transform: scaleX(0)"></div></div>
+          </div>
+
+          <!-- CAN MAKE — emphasized -->
+          <div data-anim="fm-rise" data-rd="320" style="opacity:0;position:relative;margin-top:14px;background:linear-gradient(135deg,#1E3A8A,#2747a8);border-radius:24px;padding:clamp(24px,2.6vw,34px);overflow:hidden;box-shadow:0 14px 36px rgba(30,58,138,0.18);">
+            
+            <div style="display:flex;align-items:baseline;gap:10px;position:relative;">
+              <span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;letter-spacing:0.18em;color:#FF9E80;">CAN MAKE</span>
+              <span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:18px;color:#fff;">つくれるもの、いろいろ。</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;position:relative;">
+              <span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;background:#fff;padding:9px 18px;border-radius:99px;">HPサイト</span>
+              <span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;background:#fff;padding:9px 18px;border-radius:99px;">LPサイト</span>
+              <span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;background:#fff;padding:9px 18px;border-radius:99px;">ECサイト</span><span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;background:#fff;padding:9px 18px;border-radius:99px;">チラシ</span><span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;background:#fff;padding:9px 18px;border-radius:99px;">ロゴ</span><span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;background:#fff;padding:9px 18px;border-radius:99px;">名刺</span>
+              
+              
+              <span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;background:#fff;padding:9px 18px;border-radius:99px;">プレゼン資料</span><span style="font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;background:#fff;padding:9px 18px;border-radius:99px;">3つ折りパンフレット</span>
+              
+            </div>
+          <div style="position: absolute; top: -33px; width: 140px; height: 140px; border-radius: 50%; background: rgba(255,158,128,0.25); filter: blur(26px); left: 449px"></div></div>
+        </div><div data-anim="fm-rise" data-rd="180" style="opacity: 0; background: rgba(255,255,255,0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 8px 32px rgba(31,38,135,0.06); border-radius: 26px; padding: clamp(26px,3vw,40px); position: relative">
+          <span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:10px;letter-spacing:0.2em;color:#FF9E80;">LICENSE / 資格</span>
+          <div style="display:flex;flex-direction:column;gap:14px;margin-top:20px;">
+            <div style="display:flex;align-items:center;gap:14px;border:1px solid rgba(30,58,138,0.1);background:rgba(255,255,255,0.5);border-radius:16px;padding:16px 18px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#FF9E80;flex-shrink:0;"></span>
+              <div><h4 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;">Webデザイン技能検定 3級</h4><p style="margin:3px 0 0;font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.1em;color:#FF9E80;">NATIONAL CERTIFICATION / 国家資格</p></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;border:1px solid rgba(30,58,138,0.1);background:rgba(255,255,255,0.5);border-radius:16px;padding:16px 18px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#1E3A8A;flex-shrink:0;"></span>
+              <div><h4 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;">色彩検定 2級</h4><p style="margin:3px 0 0;font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.1em;color:rgba(30,58,138,0.5);">COLOR COORDINATION</p></div>
+            </div><div style="display:flex;align-items:center;gap:14px;border:1px solid rgba(30,58,138,0.1);background:rgba(255,255,255,0.5);border-radius:16px;padding:16px 18px;">
+              <span style="width:8px;height:8px;border-radius:50%;background:#1E3A8A;flex-shrink:0;"></span>
+              <div><h4 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:14px;color:#1E3A8A;">世界遺産検定 2級（笑）</h4><p style="margin:3px 0 0;font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.1em;color:rgba(30,58,138,0.5);">TEST OF WORLD HERITAGE STUDY</p></div>
+            </div>
+          </div>
+        </div>
+
+        
+      </div>
+    </section><section id="contact" data-screen-label="Contact" style="background:#FF9E80;padding:clamp(70px,11vh,130px) clamp(24px,5vw,84px) clamp(40px,6vh,60px);position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-12vw;right:-6vw;width:46vw;height:46vw;border-radius:50%;background:rgba(255,255,255,0.16);filter:blur(40px);pointer-events:none;"></div>
+      <span data-anim="fm-rise" style="opacity:0;display:block;font-family:'Montserrat',sans-serif;font-weight:800;font-size:11px;letter-spacing:0.28em;color:rgba(255,255,255,0.85);margin-bottom:16px;position:relative;">06 — CONTACT</span>
+      <h2 data-anim="fm-rise" data-rd="100" style="opacity: 0; margin: 0 0 clamp(28px,4vh,44px); font-family: 'Montserrat',sans-serif; font-weight: 800; font-size: clamp(44px,6.5vw,128px); line-height: 0.88; letter-spacing: -0.03em; color: #FFF7F2; position: relative">LET'S CREATE<br>なんか、めっちゃええ感じ。</h2>
+      <div data-col2="" style="display:grid;grid-template-columns:1fr 1.1fr;gap:clamp(28px,5vw,72px);align-items:start;position:relative;">
+        
+        <div data-anim="fm-rise" data-rd="180" style="opacity:0;">
+          <p style="margin:0 0 20px;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:clamp(18px,2vw,26px);color:#fff;line-height:1.6;">いつも全力、100％</p>
+          <p style="margin: 0 0 28px; font-family: 'Noto Sans JP',sans-serif; font-weight: 300; font-size: 14px; line-height: 2; color: rgba(255,255,255,0.9); max-width: 34ch; width: 300px">「頼みたいけど、どんなデザインが良いのかも分からん…」そんなフワッとした状態でも大丈夫です。まずは現状のモヤモヤを聞かせてください。いっしょに頭の中をほどいていきましょう。</p>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:13px;letter-spacing:0.06em;color:#fff;">ふじもも ｜ Design</span>
+            <span style="font-family:'Montserrat',sans-serif;font-weight:500;font-size:11px;letter-spacing:0.16em;color:rgba(255,255,255,0.75);">WEB &amp; GRAPHIC DESIGNER — OSAKA, JP</span>
+          </div>
+        </div><div style="position:relative;">
+          <img src="ohkini.png" alt="おおきに！" class="fm-jerk2" style="position:absolute;z-index:6;top:-30px;right:-8px;width:clamp(132px,14vw,170px);height:auto;filter:drop-shadow(0 10px 18px rgba(15,23,42,0.22));pointer-events:none;">
+          
+          <div data-thankyou="" style="display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,0.95);border-radius:26px;padding:60px 40px;box-shadow:0 18px 50px rgba(15,23,42,0.16);min-height:300px;gap:14px;">
+            <div style="width:54px;height:54px;border-radius:50%;background:#1E3A8A;color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;">✓</div>
+            <h3 style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:20px;color:#1E3A8A;">おおきに、受け取りました！</h3>
+            <p style="margin:0;font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:13px;line-height:1.9;color:rgba(15,23,42,0.7);">なるはやで、折り返しご連絡します。<br>ちょっとだけ待っといてくださいね。</p>
+          </div><form data-form="" data-anim="fm-rise" data-rd="260" style="opacity: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 18px 50px rgba(15,23,42,0.16); border-radius: 26px; padding: clamp(24px,3vw,40px); display: flex; flex-direction: column; gap: 16px; position: relative">
+            <div data-col2="" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <label style="display:flex;flex-direction:column;gap:6px;"><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.16em;color:rgba(30,58,138,0.6);">お名前 *</span><input type="text" required="" placeholder="山田 太郎" style="font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#0F172A;border:1px solid rgba(30,58,138,0.16);background:#fff;border-radius:12px;padding:11px 14px;outline:none;"></label>
+              <label style="display:flex;flex-direction:column;gap:6px;"><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.16em;color:rgba(30,58,138,0.6);">メール *</span><input type="email" required="" placeholder="you@example.com" style="font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#0F172A;border:1px solid rgba(30,58,138,0.16);background:#fff;border-radius:12px;padding:11px 14px;outline:none;"></label>
+            </div>
+            <label style="display:flex;flex-direction:column;gap:6px;"><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.16em;color:rgba(30,58,138,0.6);">ご相談内容</span>
+              <select style="font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#0F172A;border:1px solid rgba(30,58,138,0.16);background:#fff;border-radius:12px;padding:11px 14px;outline:none;appearance:none;">
+                <option>ホームページ制作</option><option>LP（ランディングページ）制作</option><option>ECサイト構築</option><option>グラフィック・印刷物</option><option>その他・まだ決まっていない</option>
+              </select>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;"><span style="font-family:'Montserrat',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.16em;color:rgba(30,58,138,0.6);">メッセージ</span><textarea rows="3" placeholder="「こんなん作れるん？」レベルでもOK。気軽にどうぞ！" style="font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#0F172A;border:1px solid rgba(30,58,138,0.16);background:#fff;border-radius:12px;padding:11px 14px;outline:none;resize:vertical;"></textarea></label>
+            <button type="submit" style="margin-top: 4px; font-family: 'Montserrat',sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 0.08em; color: #fff; background: #1E3A8A; border: none; border-radius: 99px; padding: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; position: relative">まずは無料で相談する <span style="font-size:15px;">↗</span></button>
+          <img src="./takoyaki_maido-mqss8rmv.png" alt="" class="fm-jerk3" style="position:absolute;z-index:5;left:-20px;bottom:-10px;width:clamp(72px,15vw,118px);height:auto;filter:drop-shadow(0 8px 14px rgba(15,23,42,0.12));pointer-events:none;"></form>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-top:1px solid rgba(255,255,255,0.3);margin-top:clamp(48px,7vh,80px);padding-top:24px;position:relative;">
+        <span style="font-family:'Montserrat',sans-serif;font-weight:800;font-size:16px;color:#fff;letter-spacing:-0.02em;">FUJIMOMO</span>
+        <span style="font-family:'Montserrat',sans-serif;font-weight:500;font-size:10px;letter-spacing:0.12em;color:rgba(255,255,255,0.75);">© 2026 ふじもも ｜ Design — All about design.</span>
+      </div>
+    </section>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._active = null;
+    this._t0 = performance.now();
+    this._car = 0;
+    this._curX = null;
+    ['update','tick','onScroll','onClick','onSubmit','onDown','onMove','onUp','onOver'].forEach((m) => { this[m] = this[m].bind(this); });
+
+    window.addEventListener('scroll', this.onScroll, { passive: true });
+    window.addEventListener('resize', this.onResize = () => { this._curX = null; this.positionCarousel(false); this.update(); });
+    document.addEventListener('click', this.onClick);
+    document.addEventListener('submit', this.onSubmit);
+    document.addEventListener('mousedown', this.onDown);
+    document.addEventListener('mousemove', this.onMove);
+    document.addEventListener('mouseup', this.onUp);
+    document.addEventListener('mouseover', this.onOver);
+
+    this._raf = requestAnimationFrame(this.tick);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('scroll', this.onScroll);
+    window.removeEventListener('resize', this.onResize);
+    document.removeEventListener('click', this.onClick);
+    document.removeEventListener('submit', this.onSubmit);
+    document.removeEventListener('mousedown', this.onDown);
+    document.removeEventListener('mousemove', this.onMove);
+    document.removeEventListener('mouseup', this.onUp);
+    document.removeEventListener('mouseover', this.onOver);
+    if (this._raf) cancelAnimationFrame(this._raf);
+  }
+
+  tick() {
+    this.update();
+    if (this._curX === null) this.positionCarousel(false);
+    // run continuously: CSS-frozen contexts aside, this keeps reveals,
+    // scroll-spy and carousel self-healing against any late re-render.
+    this._raf = requestAnimationFrame(this.tick);
+  }
+
+  onScroll() {
+    if (this._pending) return;
+    this._pending = true;
+    requestAnimationFrame(() => { this._pending = false; this.update(); });
+  }
+
+  cards() { const r = document.getElementById('fm-root'); return r ? Array.from(r.querySelectorAll('[data-card]')) : []; }
+
+  positionCarousel(animate) {
+    const root = document.getElementById('fm-root');
+    if (!root) return;
+    const cont = root.querySelector('#fm-carousel');
+    const track = root.querySelector('[data-track]');
+    if (!cont || !track) return;
+    const cards = this.cards();
+    if (!cards.length) return;
+    const cw = Math.min(380, Math.max(220, cont.clientWidth * 0.6));
+    const gap = 24;
+    cards.forEach((c, i) => {
+      c.style.width = cw + 'px';
+      const on = i === this._car;
+      c.style.transform = 'scale(' + (on ? 1 : 0.82) + ')';
+      c.style.opacity = on ? '1' : '0.8';
+      c.style.zIndex = on ? '2' : '1';
+    });
+    const targetX = cont.clientWidth / 2 - this._car * (cw + gap) - cw / 2;
+    if (animate && this._curX !== null) {
+      this.tweenX(track, this._curX, targetX, 480);
+    } else {
+      track.style.transform = 'translateX(' + targetX + 'px)';
+      this._curX = targetX;
+    }
+    // dots
+    const dots = root.querySelector('[data-dots]');
+    if (dots) {
+      if (dots.children.length !== cards.length) {
+        dots.innerHTML = '';
+        cards.forEach((c, i) => {
+          const d = document.createElement('button');
+          d.setAttribute('data-dot', i);
+          d.style.cssText = 'border:none;cursor:pointer;padding:0;height:8px;border-radius:99px;';
+          dots.appendChild(d);
+        });
+      }
+      Array.from(dots.children).forEach((d, i) => {
+        const on = i === this._car;
+        d.style.width = on ? '26px' : '8px';
+        d.style.background = on ? '#FF9E80' : 'rgba(255,255,255,0.3)';
+      });
+    }
+  }
+
+  tweenX(track, from, to, dur) {
+    if (this._tw) cancelAnimationFrame(this._tw);
+    const start = performance.now();
+    const step = (t) => {
+      const p = Math.min(1, (t - start) / dur);
+      const e = 1 - Math.pow(1 - p, 3);
+      const x = from + (to - from) * e;
+      track.style.transform = 'translateX(' + x + 'px)';
+      this._curX = x;
+      if (p < 1) this._tw = requestAnimationFrame(step);
+    };
+    this._tw = requestAnimationFrame(step);
+  }
+
+  goTo(i, animate) {
+    const n = this.cards().length;
+    if (!n) return;
+    this._car = ((i % n) + n) % n;
+    this.positionCarousel(animate !== false);
+  }
+
+  update() {
+    const root = document.getElementById('fm-root');
+    if (!root) return;
+    const vh = window.innerHeight;
+    const y = window.scrollY;
+
+    // reveal / grow — JS rAF tweens (CSS animations are frozen in some render
+    // contexts; JS rAF always advances). Self-healing safety net re-forces the
+    // final state for finished elements in case a re-render reverts inline.
+    root.querySelectorAll('[data-anim]').forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.top < vh * 0.92 && r.bottom > -40) this.revealEl(el);
+      if (el._rvDone) { el.style.opacity = '1'; el.style.transform = 'none'; }
+    });
+    root.querySelectorAll('[data-grow]').forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.top < vh * 0.92 && r.bottom > -40) this.growEl(el);
+      if (el._gDone) el.style.transform = 'scaleX(1)';
+    });
+
+    // count-up
+    root.querySelectorAll('[data-count]').forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (!el._done && r.top < vh * 0.85 && r.bottom > 0) { el._done = true; this.countUp(el); }
+    });
+
+    // progress
+    const h = document.documentElement.scrollHeight - vh;
+    const prog = root.querySelector('[data-progress]');
+    if (prog) prog.style.height = (h > 0 ? (y / h) * 100 : 0) + '%';
+
+    // parallax
+    root.querySelectorAll('[data-parallax]').forEach((el) => { el.style.transform = 'translate3d(0,' + (y * parseFloat(el.getAttribute('data-parallax'))) + 'px,0)'; });
+    root.querySelectorAll('[data-drift]').forEach((el) => { el.style.transform = 'translate3d(' + (y * parseFloat(el.getAttribute('data-drift'))) + 'px,0,0)'; });
+
+    // self-heal carousel layout if reverted
+    const track = root.querySelector('[data-track]');
+    if (track && !track.style.transform) this.positionCarousel(false);
+
+    // scroll-spy + CTA hide on contact
+    const ids = ['top','about','works','career','why','skills','contact'];
+    const mid = y + vh * 0.35;
+    let active = 'top';
+    ids.forEach((id) => { const s = document.getElementById(id); if (s && s.offsetTop <= mid) active = id; });
+    this._active = active;
+    root.querySelectorAll('#fm-spine [data-nav]').forEach((a) => {
+      const on = a.getAttribute('data-nav') === active;
+      const num = a.querySelector('[data-num]');
+      const lab = a.querySelector('[data-label]');
+      const ind = a.querySelector('[data-ind]');
+      if (num) { num.style.color = on ? '#1E3A8A' : 'rgba(30,58,138,0.38)'; num.style.transform = on ? 'scale(1.18)' : 'scale(1)'; }
+      if (lab) lab.style.color = on ? '#FF9E80' : 'rgba(30,58,138,0.32)';
+      if (ind) ind.style.height = on ? '22px' : '0px';
+    });
+    const cta = document.getElementById('fm-cta');
+    if (cta) {
+      const hide = active === 'contact';
+      cta.style.opacity = hide ? '0' : '1';
+      cta.style.transform = hide ? 'scale(0)' : 'scale(1)';
+      cta.style.pointerEvents = hide ? 'none' : 'auto';
+    }
+  }
+
+  onClick(e) {
+    const T = e.target;
+    const nav = T.closest && T.closest('[data-nav]');
+    if (nav) { e.preventDefault(); if (this._ovOpen) this.closeWorks(); this.scrollToId(nav.getAttribute('data-nav')); const m = document.getElementById('fm-menu'); if (m) m.style.display = 'none'; return; }
+    if (T.closest && T.closest('#fm-burger')) { const m = document.getElementById('fm-menu'); if (m) m.style.display = 'flex'; return; }
+    if (T.closest && T.closest('#fm-menu-close')) { const m = document.getElementById('fm-menu'); if (m) m.style.display = 'none'; return; }
+    if (T.closest && T.closest('#fm-cta')) { this.scrollToId('contact'); return; }
+    if (T.closest && T.closest('[data-arrow="left"]')) { this.goTo(this._car - 1); return; }
+    if (T.closest && T.closest('[data-arrow="right"]')) { this.goTo(this._car + 1); return; }
+    const dot = T.closest && T.closest('[data-dot]');
+    if (dot) { this.goTo(parseInt(dot.getAttribute('data-dot'), 10)); return; }
+    if (T.closest && T.closest('[data-works-more]')) { this.openWorks(); return; }
+    if (T.closest && T.closest('[data-works-close]')) { this.closeWorks(); return; }
+    const fil = T.closest && T.closest('[data-filter]');
+    if (fil) { this.setFilter(fil.getAttribute('data-filter')); return; }
+    const wo = T.closest && T.closest('[data-work-open]');
+    if (wo) { this.openDetail(wo.getAttribute('data-work-open')); return; }
+    if (T.closest && T.closest('[data-detail-back]')) { this.closeDetail(); return; }
+  }
+
+  setFilter(g) {
+    const ov = document.getElementById('fm-works-overlay');
+    if (!ov) return;
+    ov.querySelectorAll('[data-filter]').forEach((b) => {
+      const on = b.getAttribute('data-filter') === g;
+      b.style.background = on ? '#FF9E80' : '#fff';
+      b.style.color = '#0E1F52';
+      b.style.borderColor = on ? '#FF9E80' : '#fff';
+    });
+    ov.querySelectorAll('[data-works-card]').forEach((c) => {
+      const show = g === 'all' || c.getAttribute('data-genre') === g;
+      c.style.display = show ? '' : 'none';
+    });
+  }
+
+  openDetail(i) {
+    const ov = document.getElementById('fm-works-overlay');
+    if (!ov) return;
+    const tabs = ov.querySelector('[data-ov-tabs]');
+    const grid = ov.querySelector('[data-ov-grid]');
+    const detail = ov.querySelector('[data-ov-detail]');
+    if (tabs) tabs.style.display = 'none';
+    if (grid) grid.style.display = 'none';
+    if (detail) detail.style.display = 'block';
+    ov.querySelectorAll('[data-detail]').forEach((d) => {
+      d.style.display = d.getAttribute('data-detail') === String(i) ? 'block' : 'none';
+    });
+    const _c = ov.querySelector('[data-ov-content]'); if (_c) _c.scrollTop = 0;
+    if (detail) { detail.style.animation = 'none'; void detail.offsetWidth; detail.style.animation = 'fm-ovcontent .5s cubic-bezier(.16,1,.3,1) both'; }
+  }
+
+  closeDetail() {
+    const ov = document.getElementById('fm-works-overlay');
+    if (!ov) return;
+    const tabs = ov.querySelector('[data-ov-tabs]');
+    const grid = ov.querySelector('[data-ov-grid]');
+    const detail = ov.querySelector('[data-ov-detail]');
+    if (detail) detail.style.display = 'none';
+    if (tabs) tabs.style.display = 'flex';
+    if (grid) grid.style.display = 'grid';
+    const _c = ov.querySelector('[data-ov-content]'); if (_c) _c.scrollTop = 0;
+  }
+
+  openWorks() {
+    const ov = document.getElementById('fm-works-overlay');
+    if (!ov || this._ovOpen) return;
+    this._ovOpen = true;
+    ov.style.display = 'block';
+    const _c = ov.querySelector('[data-ov-content]'); if (_c) _c.scrollTop = 0;
+    this.closeDetail();
+    this.setFilter('all');
+    this._prevBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const cta = document.getElementById('fm-cta'); if (cta) cta.style.visibility = 'hidden';
+    const burger = document.getElementById('fm-burger'); if (burger) burger.style.visibility = 'hidden';
+    const content = ov.querySelector('[data-ov-content]');
+    ov.style.animation = 'none';
+    if (content) content.style.animation = 'none';
+    void ov.offsetWidth;
+    ov.style.animation = 'fm-ovin .62s cubic-bezier(.16,1,.3,1) forwards';
+    if (content) content.style.animation = 'fm-ovcontent .55s cubic-bezier(.16,1,.3,1) .32s both';
+  }
+
+  closeWorks() {
+    const ov = document.getElementById('fm-works-overlay');
+    if (!ov || !this._ovOpen) return;
+    const content = ov.querySelector('[data-ov-content]');
+    if (content) content.style.animation = 'none';
+    ov.style.animation = 'none';
+    void ov.offsetWidth;
+    ov.style.animation = 'fm-ovout .5s cubic-bezier(.16,1,.3,1) forwards';
+    const done = () => {
+      ov.removeEventListener('animationend', done);
+      ov.style.display = 'none';
+      this._ovOpen = false;
+      document.body.style.overflow = this._prevBodyOverflow || '';
+      const cta = document.getElementById('fm-cta'); if (cta) cta.style.visibility = '';
+      const burger = document.getElementById('fm-burger'); if (burger) burger.style.visibility = '';
+    };
+    ov.addEventListener('animationend', done);
+  }
+
+  onSubmit(e) {
+    const form = e.target.closest && e.target.closest('[data-form]');
+    if (!form) return;
+    e.preventDefault();
+    form.style.display = 'none';
+    const ty = document.querySelector('[data-thankyou]');
+    if (ty) ty.style.display = 'flex';
+  }
+
+  onDown(e) {
+    const car = e.target.closest && e.target.closest('#fm-carousel');
+    if (!car) return;
+    const track = document.querySelector('[data-track]');
+    if (!track) return;
+    this._drag = { x: e.pageX, startX: this._curX || 0, moved: 0, track };
+    track.style.cursor = 'grabbing';
+  }
+  onMove(e) {
+    if (!this._drag) return;
+    e.preventDefault();
+    const dx = e.pageX - this._drag.x;
+    this._drag.moved = dx;
+    this._drag.track.style.transform = 'translateX(' + (this._drag.startX + dx) + 'px)';
+    this._curX = this._drag.startX + dx;
+  }
+  onUp() {
+    if (!this._drag) return;
+    const dx = this._drag.moved;
+    this._drag.track.style.cursor = 'grab';
+    this._drag = null;
+    if (dx > 60) this.goTo(this._car - 1);
+    else if (dx < -60) this.goTo(this._car + 1);
+    else this.goTo(this._car);
+  }
+
+  onOver(e) {
+    const c = e.target.closest && e.target.closest('#fm-cta');
+    if (!c) return;
+    const inner = c.querySelector('.fm-cta-inner');
+    if (inner && !inner.style.animationName) {
+      inner.style.animation = 'fm-rotate .7s cubic-bezier(.16,1,.3,1)';
+      inner.addEventListener('animationend', () => { inner.style.animation = ''; }, { once: true });
+    }
+  }
+
+  revealEl(el) {
+    if (el._rv) return; el._rv = 1;
+    el.style.animation = 'none';
+    const delay = parseFloat(el.getAttribute('data-rd') || 0);
+    const dur = 720, dist = 26;
+    const begin = performance.now() + delay;
+    const step = (t) => {
+      let p = (t - begin) / dur;
+      if (p < 0) { el.style.opacity = '0'; el.style.transform = 'translateY(' + dist + 'px)'; requestAnimationFrame(step); return; }
+      p = Math.min(1, p);
+      const e = 1 - Math.pow(1 - p, 3);
+      el.style.opacity = String(e);
+      el.style.transform = p < 1 ? 'translateY(' + (dist * (1 - e)) + 'px)' : 'none';
+      if (p < 1) requestAnimationFrame(step);
+      else { el._rvDone = 1; el.style.opacity = '1'; el.style.transform = 'none'; }
+    };
+    requestAnimationFrame(step);
+  }
+
+  growEl(el) {
+    if (el._g) return; el._g = 1;
+    el.style.animation = 'none';
+    const dur = 1100;
+    const begin = performance.now();
+    const step = (t) => {
+      const p = Math.min(1, (t - begin) / dur);
+      const e = 1 - Math.pow(1 - p, 3);
+      el.style.transform = 'scaleX(' + e + ')';
+      if (p < 1) requestAnimationFrame(step);
+      else { el._gDone = 1; el.style.transform = 'scaleX(1)'; }
+    };
+    requestAnimationFrame(step);
+  }
+
+  scrollToId(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const y = el.getBoundingClientRect().top + window.scrollY - 6;
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+  }
+
+  countUp(el) {
+    const target = parseFloat(el.getAttribute('data-count'));
+    const suffix = el.getAttribute('data-suffix') || '';
+    const dur = 1200;
+    const start = performance.now();
+    const step = (t) => {
+      const p = Math.min(1, (t - start) / dur);
+      const ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * ease) + suffix;
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,300 +1,643 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ふじもも │ Design — Portfolio</title>
-<meta name="description" content="大阪のWebデザイナー ふじもも のポートフォリオ。HP・LP・EC・グラフィックまで、顧客に寄り添い期待以上のクオリティで。">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,800;0,900;1,600;1,900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Shippori+Mincho:ital,wght@0,500;0,600;0,700;0,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div id="fmRoot" class="fm-root" style="position:relative; display:flex; height:100vh; overflow:hidden; background:#221C15; color:#221C15; font-family:'Archivo','Zen Kaku Gothic New',sans-serif;">
+// @ds-adherence-ignore -- omelette starter scaffold (raw elements/hex/px by design)
+/* BEGIN USAGE */
+/**
+ * <image-slot> — user-fillable image placeholder.
+ *
+ * Drop this into a deck, mockup, or page wherever you want the user to
+ * supply an image. You control the slot's shape and size; the user fills it
+ * by dragging an image file onto it (or clicking to browse). The dropped
+ * image persists across reloads via a .image-slots.state.json sidecar —
+ * same read-via-fetch / write-via-window.omelette pattern as
+ * design_canvas.jsx, so the filled slot shows on share links, downloaded
+ * zips, and PPTX export. Outside the omelette runtime the slot is read-only.
+ *
+ * The host bridge only allows sidecar writes at the project root, so the
+ * HTML that uses this component is assumed to live at the project root too
+ * (same constraint as design_canvas.jsx).
+ *
+ * Attributes:
+ *   id           Persistence key. REQUIRED for the drop to survive reload —
+ *                every slot on the page needs a distinct id.
+ *   shape        'rect' | 'rounded' | 'circle' | 'pill'   (default 'rounded')
+ *                'circle' applies 50% border-radius; on a non-square slot
+ *                that's an ellipse — set equal width and height for a true
+ *                circle.
+ *   radius       Corner radius in px for 'rounded'.       (default 12)
+ *   mask         Any CSS clip-path value. Overrides `shape` — use this for
+ *                hexagons, blobs, arbitrary polygons.
+ *   fit          object-fit: cover | contain | fill.       (default 'cover')
+ *                With cover (the default) double-clicking the filled slot
+ *                enters a reframe mode: the whole image spills past the mask
+ *                (translucent outside, opaque inside), drag to reposition,
+ *                corner-drag to scale. The crop persists alongside the image
+ *                in the sidecar. contain/fill stay static.
+ *   position     object-position for fit=contain|fill.     (default '50% 50%')
+ *   placeholder  Empty-state caption.                      (default 'Drop an image')
+ *   src          Optional initial/fallback image URL. A user drop overrides
+ *                it; clearing the drop reveals src again.
+ *
+ * Size and layout come from ordinary CSS on the element — width/height
+ * inline or from a parent grid — so it composes with any layout.
+ *
+ * Usage:
+ *   <image-slot id="hero"   style="width:800px;height:450px" shape="rounded" radius="20"
+ *               placeholder="Drop a hero image"></image-slot>
+ *   <image-slot id="avatar" style="width:120px;height:120px" shape="circle"></image-slot>
+ *   <image-slot id="kite"   style="width:300px;height:300px"
+ *               mask="polygon(50% 0, 100% 50%, 50% 100%, 0 50%)"></image-slot>
+ */
+/* END USAGE */
 
-  <!-- ============ FIXED LEFT SPINE ============ -->
-  <aside class="fm-spine" style="flex:none; width:clamp(248px,22vw,310px); height:100vh; background:#221C15; color:#F3EADB; display:flex; flex-direction:column; justify-content:space-between; padding:30px 26px; border-right:1.5px solid #3a342b;">
-    <div>
-      <div style="font-family:'Archivo',sans-serif; font-weight:900; font-size:27px; letter-spacing:-0.03em; line-height:1;">FUJI<span style="color:#ED8A8A;">MOMO</span></div>
-      <div style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:500; font-size:12px; color:#b3ab99; margin-top:8px;">ふじもも │ Design</div>
-      <div style="font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:0.12em; color:#7a7363; margin-top:3px;">WEB DESIGNER — OSAKA</div>
-    </div>
+(() => {
+  const STATE_FILE = '.image-slots.state.json';
+  // 2× a ~600px slot in a 1920-wide deck — retina-sharp without making the
+  // sidecar enormous. A 1200px WebP at q=0.85 is ~150-300KB.
+  const MAX_DIM = 1200;
+  // Raster formats only. SVG is excluded (can carry script; createImageBitmap
+  // on SVG blobs is inconsistent). GIF is excluded because the canvas
+  // re-encode keeps only the first frame, so an animated GIF would silently
+  // go still — better to reject than surprise.
+  const ACCEPT = ['image/png', 'image/jpeg', 'image/webp', 'image/avif'];
 
-    <button data-burger class="fm-burger" aria-label="メニュー" style="display:none; flex-direction:column; gap:5px; width:44px; height:44px; border:none; background:transparent; cursor:pointer; align-items:center; justify-content:center;">
-      <span style="display:block; width:24px; height:2px; background:#F3EADB;"></span>
-      <span style="display:block; width:24px; height:2px; background:#F3EADB;"></span>
-      <span style="display:block; width:24px; height:2px; background:#F3EADB;"></span>
-    </button>
+  // ── Shared sidecar store ────────────────────────────────────────────────
+  // One fetch + immediate write-on-change for every <image-slot> on the
+  // page. Reads via fetch() so viewing works anywhere the HTML and sidecar
+  // are served together; writes go through window.omelette.writeFile, which
+  // the host allowlists to *.state.json basenames only.
+  const subs = new Set();
+  let slots = {};
+  // ids explicitly cleared before the sidecar fetch resolved — otherwise
+  // the merge below can't tell "never set" from "just deleted" and would
+  // resurrect the sidecar's stale value.
+  const tombstones = new Set();
+  let loaded = false;
+  let loadP = null;
 
-    <nav class="fm-nav" style="display:flex; flex-direction:column; gap:2px; margin:24px 0;">
-      <a href="#top" data-nav="top" style="display:flex; align-items:baseline; gap:11px; text-decoration:none; color:#8a8270; padding:7px 0; transition:color .3s, padding .3s;"><span class="fm-navnum" style="font-family:'Space Mono',monospace; font-size:10px; width:22px;">00</span><span class="fm-navlabel" style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:16px;">TOP</span></a>
-      <a href="#about" data-nav="about" style="display:flex; align-items:baseline; gap:11px; text-decoration:none; color:#8a8270; padding:7px 0; transition:color .3s, padding .3s;"><span class="fm-navnum" style="font-family:'Space Mono',monospace; font-size:10px; width:22px;">01</span><span class="fm-navlabel" style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:16px;">ABOUT</span></a>
-      <a href="#works" data-nav="works" style="display:flex; align-items:baseline; gap:11px; text-decoration:none; color:#8a8270; padding:7px 0; transition:color .3s, padding .3s;"><span class="fm-navnum" style="font-family:'Space Mono',monospace; font-size:10px; width:22px;">02</span><span class="fm-navlabel" style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:16px;">WORKS</span></a>
-      <a href="#career" data-nav="career" style="display:flex; align-items:baseline; gap:11px; text-decoration:none; color:#8a8270; padding:7px 0; transition:color .3s, padding .3s;"><span class="fm-navnum" style="font-family:'Space Mono',monospace; font-size:10px; width:22px;">03</span><span class="fm-navlabel" style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:16px;">CAREER</span></a>
-      <a href="#why" data-nav="why" style="display:flex; align-items:baseline; gap:11px; text-decoration:none; color:#8a8270; padding:7px 0; transition:color .3s, padding .3s;"><span class="fm-navnum" style="font-family:'Space Mono',monospace; font-size:10px; width:22px;">04</span><span class="fm-navlabel" style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:16px;">WHY ME</span></a>
-      <a href="#skills" data-nav="skills" style="display:flex; align-items:baseline; gap:11px; text-decoration:none; color:#8a8270; padding:7px 0; transition:color .3s, padding .3s;"><span class="fm-navnum" style="font-family:'Space Mono',monospace; font-size:10px; width:22px;">05</span><span class="fm-navlabel" style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:16px;">SKILLS</span></a>
-      <a href="#contact" data-nav="contact" style="display:flex; align-items:baseline; gap:11px; text-decoration:none; color:#8a8270; padding:7px 0; transition:color .3s, padding .3s;"><span class="fm-navnum" style="font-family:'Space Mono',monospace; font-size:10px; width:22px;">06</span><span class="fm-navlabel" style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:16px;">CONTACT</span></a>
-    </nav>
+  function load() {
+    if (loadP) return loadP;
+    loadP = fetch(STATE_FILE)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        // Merge: sidecar loses to any in-memory change that raced ahead of
+        // the fetch (drop or clear) so neither is clobbered by hydration.
+        if (j && typeof j === 'object') {
+          const merged = Object.assign({}, j, slots);
+          // A framing-only write that raced ahead of hydration must not
+          // drop a user image that's only on disk — inherit u from the
+          // sidecar for any in-memory entry that lacks one.
+          for (const k in slots) {
+            if (merged[k] && !merged[k].u && j[k]) {
+              merged[k].u = typeof j[k] === 'string' ? j[k] : j[k].u;
+            }
+          }
+          for (const id of tombstones) delete merged[id];
+          slots = merged;
+        }
+        tombstones.clear();
+      })
+      .catch(() => {})
+      .then(() => { loaded = true; subs.forEach((fn) => fn()); });
+    return loadP;
+  }
 
-    <div class="fm-spine-foot" style="display:flex; flex-direction:column; gap:18px; align-items:flex-start;">
-      <div style="display:flex; gap:12px; align-items:center;">
-        <a href="#" aria-label="Instagram" target="_blank" rel="noopener" class="fm-sns" style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; border:1.5px solid #4a443a; color:#8a8270; text-decoration:none; transition:color .3s, border-color .3s, transform .3s;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-        </a>
-      </div>
-      <div style="font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.1em; color:#7a7363; line-height:1.7;">© 2026<br>FUJIMOMO<br>ALL ABOUT DESIGN</div>
-    </div>
-  </aside>
+  // Serialize writes so two near-simultaneous drops on different slots
+  // can't reorder at the backend and leave the sidecar with only the
+  // first. A save requested mid-flight just marks dirty and re-fires on
+  // completion with the then-current slots.
+  let saving = false;
+  let saveDirty = false;
+  function save() {
+    if (saving) { saveDirty = true; return; }
+    const w = window.omelette && window.omelette.writeFile;
+    if (!w) return;
+    saving = true;
+    Promise.resolve(w(STATE_FILE, JSON.stringify(slots)))
+      .catch(() => {})
+      .then(() => { saving = false; if (saveDirty) { saveDirty = false; save(); } });
+  }
 
-  <!-- ============ SCROLLABLE MAIN ============ -->
-  <main id="fmMain" class="fm-main" style="position:relative; flex:1; height:100vh; overflow-y:auto; overflow-x:hidden; background:#F3EADB; color:#221C15; scroll-behavior:smooth;">
+  const S_MAX = 5;
+  const clampS = (s) => Math.max(1, Math.min(S_MAX, s));
 
-    <!-- HERO -->
-    <section id="top" class="fm-hero" style="position:relative; min-height:100vh; display:flex; flex-direction:column;">
-      <div class="fm-hero-pad" style="flex:1; display:flex; flex-direction:column; padding:50px 46px 22px;">
-        <div style="display:flex; justify-content:space-between; font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.14em; color:#6b6353; border-bottom:1.5px solid #221C15; padding-bottom:11px;">
-          <span>PORTFOLIO — vol.01</span>
-          <span style="color:#ED8A8A;">2026</span>
-        </div>
-        <div style="margin-top:10px;">
-          <div style="font-family:'Archivo',sans-serif; font-weight:900; font-size:clamp(58px,10vw,156px); line-height:0.84; letter-spacing:-0.05em;">FUJI<span style="color:#ED8A8A;">MOMO</span></div>
-          <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:10px;">
-            <div style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:clamp(14px,1.6vw,19px);">ふじもも <span style="color:#9a917f;">│ Design</span></div>
-            <div style="font-family:'Shippori Mincho',serif; font-style:italic; font-weight:600; font-size:clamp(13px,1.4vw,17px); color:#6b6353;">All about design.</div>
-          </div>
-        </div>
-        <div data-reveal class="fm-hero-grid" style="display:grid; grid-template-columns:1.1fr 0.9fr; gap:22px; margin-top:26px;">
-          <div style="position:relative; height:clamp(210px,30vh,330px); border-radius:4px; border:1.5px solid #221C15; overflow:hidden; background:repeating-linear-gradient(45deg, rgba(237,138,138,.1) 0 10px, transparent 10px 20px), #EFE3CC; display:flex; align-items:center; justify-content:center;">
-            <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#a99a7e;">[ PORTRAIT / 人物写真 ]</span>
-            <div style="position:absolute; top:14px; left:14px; background:#ED8A8A; color:#fff; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:0.12em; padding:5px 11px; border-radius:999px;">FEATURE</div>
-            <div style="position:absolute; bottom:-24px; right:-24px; width:118px; height:118px; animation:fm-spin 16s linear infinite;">
-              <svg viewBox="0 0 128 128" width="118" height="118">
-                <defs><path id="fm-circle2" d="M64,64 m-46,0 a46,46 0 1,1 92,0 a46,46 0 1,1 -92,0"></path></defs>
-                <circle cx="64" cy="64" r="62" fill="#221C15"></circle>
-                <text fill="#F3EADB" font-family="Space Mono, monospace" font-size="11.5" letter-spacing="3.4"><textPath href="#fm-circle2" startOffset="0">WEB ✺ GRAPHIC ✺ EC ✺ DTP ✺ </textPath></text>
-                <text x="64" y="59" text-anchor="middle" fill="#ED8A8A" font-family="Archivo, sans-serif" font-weight="900" font-size="26">桃</text>
-                <text x="64" y="77" text-anchor="middle" fill="#F3EADB" font-family="Space Mono, monospace" font-size="9" letter-spacing="2">2026</text>
-              </svg>
-            </div>
-          </div>
-          <div style="display:flex; flex-direction:column; justify-content:space-between; border:1.5px solid #221C15; border-radius:4px; padding:22px; background:#fff;">
-            <div>
-              <div style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:0.16em; color:#ED8A8A;">CATCH COPY</div>
-              <div style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:900; font-size:clamp(22px,2.8vw,34px); line-height:1.4; margin-top:10px;">寄り添って、<br>期待の<span style="color:#ED8A8A;">その先</span>へ。</div>
-            </div>
-            <div style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:13.5px; line-height:1.85; color:#4a4438; margin-top:14px;">大阪のWebデザイナー。HP・LP・EC・グラフィックまで、顧客に寄り添い、期待以上のクオリティで応えます。</div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
-              <span style="font-family:'Space Mono',monospace; font-size:10px; border:1px solid #221C15; border-radius:999px; padding:5px 11px;">Figma</span>
-              <span style="font-family:'Space Mono',monospace; font-size:10px; border:1px solid #221C15; border-radius:999px; padding:5px 11px;">HTML / CSS</span>
-              <span style="font-family:'Space Mono',monospace; font-size:10px; border:1px solid #221C15; border-radius:999px; padding:5px 11px;">JS / PHP</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div style="overflow:hidden; background:#ED8A8A; color:#F3EADB; white-space:nowrap; border-top:1.5px solid #221C15; border-bottom:1.5px solid #221C15;">
-        <div style="display:inline-block; animation:fm-marquee 22s linear infinite; font-family:'Archivo',sans-serif; font-weight:900; font-size:clamp(16px,2vw,22px); padding:11px 0;">
-          <span>WEB DESIGN ✺ ふじもも DESIGN ✺ PORTFOLIO 2026 ✺ OSAKA ✺ 寄り添うデザイン ✺&nbsp;</span><span>WEB DESIGN ✺ ふじもも DESIGN ✺ PORTFOLIO 2026 ✺ OSAKA ✺ 寄り添うデザイン ✺&nbsp;</span>
-        </div>
-      </div>
-    </section>
+  // Normalize a stored slot value. Pre-reframe sidecars stored a bare
+  // data-URL string; newer ones store {u, s, x, y}. Either shape is valid.
+  function getSlot(id) {
+    const v = slots[id];
+    if (!v) return null;
+    return typeof v === 'string' ? { u: v, s: 1, x: 0, y: 0 } : v;
+  }
 
-    <!-- ABOUT -->
-    <section id="about" class="fm-sec" style="padding:84px 46px;">
-      <div class="fm-about-grid" style="display:grid; grid-template-columns:0.34fr 0.66fr; gap:36px; align-items:start;">
-        <div data-reveal>
-          <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.16em; color:#ED8A8A;">01 — ABOUT</div>
-          <div style="font-family:'Shippori Mincho',serif; font-weight:800; font-size:clamp(30px,3.6vw,48px); line-height:1.18; margin-top:14px;">畑違いから、<br>夢中で。</div>
-          <div class="fm-about-vert" style="writing-mode:vertical-rl; font-family:'Shippori Mincho',serif; font-weight:600; font-size:13px; letter-spacing:0.18em; color:#9a917f; margin-top:22px; height:110px;">大阪生まれ ─ ふじもも</div>
-        </div>
-        <div data-reveal>
-          <p style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:clamp(14px,1.4vw,16px); line-height:2.05; color:#3a352b; margin:0; text-wrap:pretty;">大学は観光学部。コロナ禍で希望の業界への道が断たれましたが、それをきっかけに全く別の業界へチャレンジしました。未経験ながら2年目で本社異動を果たし、大手上場企業のデザイン・制作担当として在籍。</p>
-          <p style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:clamp(14px,1.4vw,16px); line-height:2.05; color:#3a352b; margin:20px 0 0; text-wrap:pretty;">「もっとデザインを極めたい」「より顧客に寄り添って喜ばれる仕事をしたい」という想いから、ベンチャー企業へ。これまでと全く違う分野で体当たりで働き、持ち前の<span style="background:linear-gradient(transparent 62%, #F6C4BE 62%);">向上心で無我夢中に勉強</span>。培った知識を勉強会や資料作成でチームに還元し、<span style="background:linear-gradient(transparent 62%, #F6C4BE 62%);">デザインチームの責任者へ昇進</span>しました。</p>
-          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:36px; border-top:1.5px solid #221C15; padding-top:22px;">
-            <div><div style="font-family:'Archivo',sans-serif; font-weight:900; font-size:38px; line-height:1; color:#ED8A8A;">2<span style="font-size:18px;">年目</span></div><div style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:12px; color:#6b6353; margin-top:6px;">で本社異動</div></div>
-            <div><div style="font-family:'Archivo',sans-serif; font-weight:900; font-size:38px; line-height:1; color:#ED8A8A;">7<span style="font-size:18px;">+</span></div><div style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:12px; color:#6b6353; margin-top:6px;">制作領域</div></div>
-            <div><div style="font-family:'Archivo',sans-serif; font-weight:900; font-size:38px; line-height:1; color:#ED8A8A;">LEAD</div><div style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:12px; color:#6b6353; margin-top:6px;">チーム責任者</div></div>
-          </div>
-        </div>
-      </div>
-    </section>
+  function setSlot(id, val) {
+    if (!id) return;
+    if (val) { slots[id] = val; tombstones.delete(id); }
+    else { delete slots[id]; if (!loaded) tombstones.add(id); }
+    subs.forEach((fn) => fn());
+    // A drop is rare + high-value — write immediately so nav-away can't lose
+    // it. Gate on the initial read so we don't overwrite a sidecar we haven't
+    // merged yet; the merge in load() keeps this change once the read lands.
+    if (loaded) save(); else load().then(save);
+  }
 
-    <!-- WORKS -->
-    <section id="works" class="fm-sec" style="background:#221C15; color:#F3EADB; padding:84px 0;">
-      <div data-reveal class="fm-sec" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:14px; border-bottom:1.5px solid #5a5345; padding-bottom:18px; padding-left:46px; padding-right:46px;">
-        <div>
-          <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.16em; color:#ED8A8A;">02 — WORKS</div>
-          <div style="font-family:'Archivo',sans-serif; font-weight:900; font-size:clamp(34px,5vw,64px); line-height:0.95; letter-spacing:-0.03em; margin-top:8px;">SELECTED WORKS</div>
-        </div>
-        <div style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:12px; color:#b3ab99; text-align:right; max-width:240px; line-height:1.7;">HP・LP・EC・チラシ・パンフレット・名刺・プレゼン資料</div>
-      </div>
+  // ── Image downscale ─────────────────────────────────────────────────────
+  // Encode through a canvas so the sidecar carries resized bytes, not the
+  // raw upload. Longest side is capped at 2× the slot's rendered width
+  // (retina) and at MAX_DIM. WebP keeps alpha and is ~10× smaller than PNG
+  // for photos, so there's no need for per-image format picking.
+  async function toDataUrl(file, targetW) {
+    const bitmap = await createImageBitmap(file);
+    try {
+      const cap = Math.min(MAX_DIM, Math.max(1, Math.round(targetW * 2)) || MAX_DIM);
+      const scale = Math.min(1, cap / Math.max(bitmap.width, bitmap.height));
+      const w = Math.max(1, Math.round(bitmap.width * scale));
+      const h = Math.max(1, Math.round(bitmap.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+      return canvas.toDataURL('image/webp', 0.85);
+    } finally {
+      bitmap.close && bitmap.close();
+    }
+  }
 
-      <div data-reveal style="margin-top:34px;">
-        <div data-carousel style="position:relative; overflow:hidden;">
-          <div data-track style="display:flex; gap:30px; padding:34px 0; transition:transform .55s cubic-bezier(.3,.8,.25,1); will-change:transform; touch-action:pan-y;">
-            <div data-card style="flex:0 0 auto; width:min(380px,76vw); cursor:pointer; transition:transform .55s cubic-bezier(.3,.8,.25,1), opacity .55s; transform-origin:center;">
-              <div data-card-media style="position:relative; aspect-ratio:4/3; border-radius:6px; overflow:hidden; background:repeating-linear-gradient(45deg, rgba(237,138,138,.18) 0 12px, transparent 12px 24px), #2c261d; border:1.5px solid #5a5345; display:flex; align-items:center; justify-content:center; transition:box-shadow .55s;">
-                <span style="font-family:'Space Mono',monospace; font-size:12px; color:#8a8270;">[ WORK 01 ]</span>
-                <div style="position:absolute; top:14px; left:14px; background:#ED8A8A; color:#221C15; font-family:'Space Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.1em; padding:5px 11px; border-radius:999px;">FEATURED</div>
-              </div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:14px;"><span style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:18px;">コーポレートサイト</span><span style="font-family:'Space Mono',monospace; font-size:11px; color:#b3ab99;">HP</span></div>
-            </div>
-            <div data-card style="flex:0 0 auto; width:min(380px,76vw); cursor:pointer; transition:transform .55s cubic-bezier(.3,.8,.25,1), opacity .55s; transform-origin:center;">
-              <div data-card-media style="position:relative; aspect-ratio:4/3; border-radius:6px; overflow:hidden; background:repeating-linear-gradient(-45deg, rgba(246,196,190,.16) 0 12px, transparent 12px 24px), #2c261d; border:1.5px solid #5a5345; display:flex; align-items:center; justify-content:center; transition:box-shadow .55s;"><span style="font-family:'Space Mono',monospace; font-size:12px; color:#8a8270;">[ WORK 02 ]</span></div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:14px;"><span style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:18px;">ブランド LP</span><span style="font-family:'Space Mono',monospace; font-size:11px; color:#b3ab99;">LP</span></div>
-            </div>
-            <div data-card style="flex:0 0 auto; width:min(380px,76vw); cursor:pointer; transition:transform .55s cubic-bezier(.3,.8,.25,1), opacity .55s; transform-origin:center;">
-              <div data-card-media style="position:relative; aspect-ratio:4/3; border-radius:6px; overflow:hidden; background:repeating-linear-gradient(45deg, rgba(237,138,138,.16) 0 12px, transparent 12px 24px), #2c261d; border:1.5px solid #5a5345; display:flex; align-items:center; justify-content:center; transition:box-shadow .55s;"><span style="font-family:'Space Mono',monospace; font-size:12px; color:#8a8270;">[ WORK 03 ]</span></div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:14px;"><span style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:18px;">EC サイト</span><span style="font-family:'Space Mono',monospace; font-size:11px; color:#b3ab99;">EC</span></div>
-            </div>
-            <div data-card style="flex:0 0 auto; width:min(380px,76vw); cursor:pointer; transition:transform .55s cubic-bezier(.3,.8,.25,1), opacity .55s; transform-origin:center;">
-              <div data-card-media style="position:relative; aspect-ratio:4/3; border-radius:6px; overflow:hidden; background:repeating-linear-gradient(-45deg, rgba(246,196,190,.16) 0 12px, transparent 12px 24px), #2c261d; border:1.5px solid #5a5345; display:flex; align-items:center; justify-content:center; transition:box-shadow .55s;"><span style="font-family:'Space Mono',monospace; font-size:12px; color:#8a8270;">[ WORK 04 ]</span></div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:14px;"><span style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:18px;">パンフレット</span><span style="font-family:'Space Mono',monospace; font-size:11px; color:#b3ab99;">DTP</span></div>
-            </div>
-            <div data-card style="flex:0 0 auto; width:min(380px,76vw); cursor:pointer; transition:transform .55s cubic-bezier(.3,.8,.25,1), opacity .55s; transform-origin:center;">
-              <div data-card-media style="position:relative; aspect-ratio:4/3; border-radius:6px; overflow:hidden; background:repeating-linear-gradient(45deg, rgba(237,138,138,.16) 0 12px, transparent 12px 24px), #2c261d; border:1.5px solid #5a5345; display:flex; align-items:center; justify-content:center; transition:box-shadow .55s;"><span style="font-family:'Space Mono',monospace; font-size:12px; color:#8a8270;">[ WORK 05 ]</span></div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:14px;"><span style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:18px;">チラシ / DTP</span><span style="font-family:'Space Mono',monospace; font-size:11px; color:#b3ab99;">DTP</span></div>
-            </div>
-            <div data-card style="flex:0 0 auto; width:min(380px,76vw); cursor:pointer; transition:transform .55s cubic-bezier(.3,.8,.25,1), opacity .55s; transform-origin:center;">
-              <div data-card-media style="position:relative; aspect-ratio:4/3; border-radius:6px; overflow:hidden; background:repeating-linear-gradient(-45deg, rgba(246,196,190,.16) 0 12px, transparent 12px 24px), #2c261d; border:1.5px solid #5a5345; display:flex; align-items:center; justify-content:center; transition:box-shadow .55s;"><span style="font-family:'Space Mono',monospace; font-size:12px; color:#8a8270;">[ WORK 06 ]</span></div>
-              <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:14px;"><span style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:18px;">プレゼン資料</span><span style="font-family:'Space Mono',monospace; font-size:11px; color:#b3ab99;">DECK</span></div>
-            </div>
-          </div>
-        </div>
+  // ── Custom element ──────────────────────────────────────────────────────
+  const stylesheet =
+    ':host{display:inline-block;position:relative;vertical-align:top;' +
+    '  font:13px/1.3 system-ui,-apple-system,sans-serif;color:rgba(0,0,0,.55);width:240px;height:160px}' +
+    '.frame{position:absolute;inset:0;overflow:hidden;background:rgba(0,0,0,.04)}' +
+    // .frame img (clipped) and .spill (unclipped ghost + handles) share the
+    // same left/top/width/height in frame-%, computed by _applyView(), so the
+    // inside-mask crop and the outside-mask spill stay pixel-aligned.
+    '.frame img{position:absolute;max-width:none;transform:translate(-50%,-50%);' +
+    '  -webkit-user-drag:none;user-select:none;touch-action:none}' +
+    // Reframe mode (double-click): the full image spills past the mask. The
+    // spill layer is sized to the IMAGE bounds so its corners are where the
+    // resize handles belong. The ghost <img> inside is translucent; the real
+    // clipped <img> underneath shows the opaque in-mask crop.
+    '.spill{position:absolute;transform:translate(-50%,-50%);display:none;z-index:1;' +
+    '  cursor:grab;touch-action:none}' +
+    ':host([data-panning]) .spill{cursor:grabbing}' +
+    '.spill .ghost{position:absolute;inset:0;width:100%;height:100%;opacity:.35;' +
+    '  pointer-events:none;-webkit-user-drag:none;user-select:none;' +
+    '  box-shadow:0 0 0 1px rgba(0,0,0,.2),0 12px 32px rgba(0,0,0,.2)}' +
+    '.spill .handle{position:absolute;width:12px;height:12px;border-radius:50%;' +
+    '  background:#fff;box-shadow:0 0 0 1.5px #c96442,0 1px 3px rgba(0,0,0,.3);' +
+    '  transform:translate(-50%,-50%)}' +
+    '.spill .handle[data-c=nw]{left:0;top:0;cursor:nwse-resize}' +
+    '.spill .handle[data-c=ne]{left:100%;top:0;cursor:nesw-resize}' +
+    '.spill .handle[data-c=sw]{left:0;top:100%;cursor:nesw-resize}' +
+    '.spill .handle[data-c=se]{left:100%;top:100%;cursor:nwse-resize}' +
+    ':host([data-reframe]){z-index:10}' +
+    ':host([data-reframe]) .spill{display:block}' +
+    ':host([data-reframe]) .frame{box-shadow:0 0 0 2px #c96442}' +
+    '.empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;' +
+    '  justify-content:center;gap:6px;text-align:center;padding:12px;box-sizing:border-box;' +
+    '  cursor:pointer;user-select:none}' +
+    '.empty svg{opacity:.45}' +
+    '.empty .cap{max-width:90%;font-weight:500;letter-spacing:.01em}' +
+    '.empty .sub{font-size:11px}' +
+    '.empty .sub u{text-underline-offset:2px;text-decoration-color:rgba(0,0,0,.25)}' +
+    '.empty:hover .sub u{color:rgba(0,0,0,.75);text-decoration-color:currentColor}' +
+    ':host([data-over]) .frame{outline:2px solid #c96442;outline-offset:-2px;' +
+    '  background:rgba(201,100,66,.10)}' +
+    '.ring{position:absolute;inset:0;pointer-events:none;border:1.5px dashed rgba(0,0,0,.25);' +
+    '  transition:border-color .12s}' +
+    ':host([data-over]) .ring{border-color:#c96442}' +
+    ':host([data-filled]) .ring{display:none}' +
+    // Controls sit BELOW the mask (top:100%), absolutely positioned so the
+    // author-declared slot height is unaffected. The gap is padding, not a
+    // top offset, so the hover target stays contiguous with the frame.
+    '.ctl{position:absolute;top:100%;left:50%;transform:translateX(-50%);padding-top:8px;' +
+    '  display:flex;gap:6px;opacity:0;pointer-events:none;transition:opacity .12s;z-index:2;' +
+    '  white-space:nowrap}' +
+    ':host([data-filled][data-editable]:hover) .ctl,:host([data-reframe]) .ctl' +
+    '  {opacity:1;pointer-events:auto}' +
+    '.ctl button{appearance:none;border:0;border-radius:6px;padding:5px 10px;cursor:pointer;' +
+    '  background:rgba(0,0,0,.65);color:#fff;font:11px/1 system-ui,-apple-system,sans-serif;' +
+    '  backdrop-filter:blur(6px)}' +
+    '.ctl button:hover{background:rgba(0,0,0,.8)}' +
+    '.err{position:absolute;left:8px;bottom:8px;right:8px;color:#b3261e;font-size:11px;' +
+    '  background:rgba(255,255,255,.85);padding:4px 6px;border-radius:5px;pointer-events:none}';
 
-        <div class="fm-sec" style="display:flex; align-items:center; justify-content:center; gap:22px; margin-top:14px; padding-left:46px; padding-right:46px;">
-          <button data-prev aria-label="前へ" class="fm-arrow" style="flex:none; width:46px; height:46px; border-radius:50%; border:1.5px solid #ED8A8A; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;">←</button>
-          <div data-dots style="display:flex; gap:9px; align-items:center;">
-            <span data-dot style="height:9px; width:26px; border-radius:999px; background:#ED8A8A; transition:all .4s; cursor:pointer;"></span>
-            <span data-dot style="height:9px; width:9px; border-radius:999px; background:rgba(237,138,138,.4); transition:all .4s; cursor:pointer;"></span>
-            <span data-dot style="height:9px; width:9px; border-radius:999px; background:rgba(237,138,138,.4); transition:all .4s; cursor:pointer;"></span>
-            <span data-dot style="height:9px; width:9px; border-radius:999px; background:rgba(237,138,138,.4); transition:all .4s; cursor:pointer;"></span>
-            <span data-dot style="height:9px; width:9px; border-radius:999px; background:rgba(237,138,138,.4); transition:all .4s; cursor:pointer;"></span>
-            <span data-dot style="height:9px; width:9px; border-radius:999px; background:rgba(237,138,138,.4); transition:all .4s; cursor:pointer;"></span>
-          </div>
-          <button data-next aria-label="次へ" class="fm-arrow" style="flex:none; width:46px; height:46px; border-radius:50%; border:1.5px solid #ED8A8A; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;">→</button>
-        </div>
-      </div>
-    </section>
+  const icon =
+    '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+    '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>' +
+    '<path d="m21 15-5-5L5 21"/></svg>';
 
-    <!-- CAREER -->
-    <section id="career" class="fm-sec" style="padding:84px 46px;">
-      <div data-reveal style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.16em; color:#ED8A8A;">03 — CAREER</div>
-      <div data-reveal style="font-family:'Shippori Mincho',serif; font-weight:800; font-size:clamp(30px,4vw,50px); line-height:1.12; margin-top:12px;">歩んできた、道。</div>
-      <div style="margin-top:40px; display:flex; flex-direction:column;">
-        <div data-reveal class="fm-career-row" style="display:grid; grid-template-columns:96px 1fr; gap:24px; border-top:1.5px solid #221C15; padding:22px 0;">
-          <div style="font-family:'Archivo',sans-serif; font-weight:900; font-size:18px; color:#ED8A8A;">CH.01</div>
-          <div class="fm-career-inner" style="display:grid; grid-template-columns:1fr 2fr; gap:22px;"><div style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:900; font-size:18px;">観光学部 → 転機</div><div style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:13.5px; line-height:1.85; color:#4a4438;">コロナ禍で希望の業界への道が断たれる。それをきっかけに、未経験のデザイン業界へ飛び込む決断。</div></div>
-        </div>
-        <div data-reveal class="fm-career-row" style="display:grid; grid-template-columns:96px 1fr; gap:24px; border-top:1.5px solid #221C15; padding:22px 0;">
-          <div style="font-family:'Archivo',sans-serif; font-weight:900; font-size:18px; color:#ED8A8A;">CH.02</div>
-          <div class="fm-career-inner" style="display:grid; grid-template-columns:1fr 2fr; gap:22px;"><div style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:900; font-size:18px;">大手上場企業</div><div style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:13.5px; line-height:1.85; color:#4a4438;">未経験ながら2年目で本社異動。デザイン・制作担当として、実務で力を磨く。</div></div>
-        </div>
-        <div data-reveal class="fm-career-row" style="display:grid; grid-template-columns:96px 1fr; gap:24px; border-top:1.5px solid #221C15; padding:22px 0;">
-          <div style="font-family:'Archivo',sans-serif; font-weight:900; font-size:18px; color:#ED8A8A;">CH.03</div>
-          <div class="fm-career-inner" style="display:grid; grid-template-columns:1fr 2fr; gap:22px;"><div style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:900; font-size:18px;">ベンチャーへ</div><div style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:13.5px; line-height:1.85; color:#4a4438;">もっと極めたい想いで退社。全く違う分野で体当たりし、無我夢中で勉強。知識をチームに還元。</div></div>
-        </div>
-        <div data-reveal class="fm-career-row" style="display:grid; grid-template-columns:96px 1fr; gap:24px; border-top:1.5px solid #221C15; border-bottom:1.5px solid #221C15; padding:22px 0; background:#ED8A8A14;">
-          <div style="font-family:'Archivo',sans-serif; font-weight:900; font-size:18px; color:#ED8A8A;">NOW</div>
-          <div class="fm-career-inner" style="display:grid; grid-template-columns:1fr 2fr; gap:22px;"><div style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:900; font-size:18px;">デザインチーム責任者</div><div style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:13.5px; line-height:1.85; color:#4a4438;">顧客に寄り添った提案で、期待以上のクオリティを追求。チームを率いる立場へ。</div></div>
-        </div>
-      </div>
-    </section>
+  class ImageSlot extends HTMLElement {
+    static get observedAttributes() {
+      return ['shape', 'radius', 'mask', 'fit', 'position', 'placeholder', 'src', 'id'];
+    }
 
-    <!-- MARQUEE 2 -->
-    <div style="overflow:hidden; background:#221C15; color:#F3EADB; white-space:nowrap;">
-      <div style="display:inline-block; animation:fm-marquee-r 26s linear infinite; font-family:'Shippori Mincho',serif; font-style:italic; font-weight:700; font-size:clamp(17px,2vw,23px); padding:13px 0;">
-        <span>レスポンスが早い &nbsp;✺&nbsp; 親しみやすいコミュニケーション &nbsp;✺&nbsp; 顧客に寄り添う &nbsp;✺&nbsp; 期待以上のクオリティ &nbsp;✺&nbsp;</span><span>レスポンスが早い &nbsp;✺&nbsp; 親しみやすいコミュニケーション &nbsp;✺&nbsp; 顧客に寄り添う &nbsp;✺&nbsp; 期待以上のクオリティ &nbsp;✺&nbsp;</span>
-      </div>
-    </div>
+    constructor() {
+      super();
+      const root = this.attachShadow({ mode: 'open' });
+      // .spill and .ctl sit OUTSIDE .frame so overflow:hidden + border-radius
+      // on the frame (circle, pill, rounded) can't clip them.
+      root.innerHTML =
+        '<style>' + stylesheet + '</style>' +
+        '<div class="frame" part="frame">' +
+        '  <img part="image" alt="" draggable="false" style="display:none">' +
+        '  <div class="empty" part="empty">' + icon +
+        '    <div class="cap"></div>' +
+        '    <div class="sub">or <u>browse files</u></div></div>' +
+        '  <div class="ring" part="ring"></div>' +
+        '</div>' +
+        '<div class="spill">' +
+        '  <img class="ghost" alt="" draggable="false">' +
+        '  <div class="handle" data-c="nw"></div><div class="handle" data-c="ne"></div>' +
+        '  <div class="handle" data-c="sw"></div><div class="handle" data-c="se"></div>' +
+        '</div>' +
+        '<div class="ctl"><button data-act="replace" title="Replace image">Replace</button>' +
+        '  <button data-act="clear" title="Remove image">Remove</button></div>' +
+        '<input type="file" accept="' + ACCEPT.join(',') + '" hidden>';
+      this._frame = root.querySelector('.frame');
+      this._ring = root.querySelector('.ring');
+      this._img = root.querySelector('.frame img');
+      this._empty = root.querySelector('.empty');
+      this._cap = root.querySelector('.cap');
+      this._sub = root.querySelector('.sub');
+      this._spill = root.querySelector('.spill');
+      this._ghost = root.querySelector('.ghost');
+      this._err = null;
+      this._input = root.querySelector('input');
+      this._depth = 0;
+      this._gen = 0;
+      this._view = { s: 1, x: 0, y: 0 };
+      this._subFn = () => this._render();
+      // Shadow-DOM listeners live with the shadow DOM — bound once here so
+      // disconnect/reconnect (e.g. React remount) doesn't stack handlers.
+      this._empty.addEventListener('click', () => this._input.click());
+      root.addEventListener('click', (e) => {
+        const act = e.target && e.target.getAttribute && e.target.getAttribute('data-act');
+        if (act === 'replace') { this._exitReframe(true); this._input.click(); }
+        if (act === 'clear') {
+          this._exitReframe(false);
+          this._gen++;
+          this._local = null;
+          if (this.id) setSlot(this.id, null); else this._render();
+        }
+      });
+      this._input.addEventListener('change', () => {
+        const f = this._input.files && this._input.files[0];
+        if (f) this._ingest(f);
+        this._input.value = '';
+      });
+      // naturalWidth/Height aren't known until load — re-apply so the cover
+      // baseline is computed from real dimensions, not the 100%×100% fallback.
+      this._img.addEventListener('load', () => this._applyView());
+      // Gated on editable + fit=cover so share links and contain/fill slots
+      // stay static.
+      this.addEventListener('dblclick', (e) => {
+        if (!this.hasAttribute('data-editable') || !this._reframes()) return;
+        e.preventDefault();
+        if (this.hasAttribute('data-reframe')) this._exitReframe(true);
+        else this._enterReframe();
+      });
+      // Pan + resize both originate on the spill layer. A handle pointerdown
+      // drives an aspect-locked resize anchored at the opposite corner; any
+      // other pointerdown on the spill pans. Offsets are frame-% so a
+      // reframed slot survives responsive resize / PPTX export.
+      this._spill.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0 || !this.hasAttribute('data-reframe')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        this._spill.setPointerCapture(e.pointerId);
+        const rect = this.getBoundingClientRect();
+        const fw = rect.width || 1, fh = rect.height || 1;
+        const corner = e.target.getAttribute && e.target.getAttribute('data-c');
+        let move;
+        if (corner) {
+          // Resize about the OPPOSITE corner. Viewport-px throughout (rect
+          // fw/fh, not clientWidth) so the math survives a transform:scale()
+          // ancestor — deck_stage renders slides scaled-to-fit.
+          const iw = this._img.naturalWidth || 1, ih = this._img.naturalHeight || 1;
+          const base = Math.max(fw / iw, fh / ih);
+          const sx = corner.includes('e') ? 1 : -1;
+          const sy = corner.includes('s') ? 1 : -1;
+          const s0 = this._view.s;
+          const w0 = iw * base * s0, h0 = ih * base * s0;
+          const cx0 = (50 + this._view.x) / 100 * fw;
+          const cy0 = (50 + this._view.y) / 100 * fh;
+          const ox = cx0 - sx * w0 / 2, oy = cy0 - sy * h0 / 2;
+          const diag0 = Math.hypot(w0, h0);
+          const ux = sx * w0 / diag0, uy = sy * h0 / diag0;
+          move = (ev) => {
+            const proj = (ev.clientX - rect.left - ox) * ux +
+                         (ev.clientY - rect.top - oy) * uy;
+            const s = clampS(s0 * proj / diag0);
+            const d = diag0 * s / s0;
+            this._view.s = s;
+            this._view.x = (ox + ux * d / 2) / fw * 100 - 50;
+            this._view.y = (oy + uy * d / 2) / fh * 100 - 50;
+            this._clampView();
+            this._applyView();
+          };
+        } else {
+          this.setAttribute('data-panning', '');
+          const start = { px: e.clientX, py: e.clientY, x: this._view.x, y: this._view.y };
+          move = (ev) => {
+            this._view.x = start.x + (ev.clientX - start.px) / fw * 100;
+            this._view.y = start.y + (ev.clientY - start.py) / fh * 100;
+            this._clampView();
+            this._applyView();
+          };
+        }
+        const up = () => {
+          try { this._spill.releasePointerCapture(e.pointerId); } catch {}
+          this._spill.removeEventListener('pointermove', move);
+          this._spill.removeEventListener('pointerup', up);
+          this._spill.removeEventListener('pointercancel', up);
+          this.removeAttribute('data-panning');
+          this._dragUp = null;
+        };
+        // Stashed so _exitReframe (Escape / outside-click mid-drag) can
+        // tear the capture + listeners down synchronously.
+        this._dragUp = up;
+        this._spill.addEventListener('pointermove', move);
+        this._spill.addEventListener('pointerup', up);
+        this._spill.addEventListener('pointercancel', up);
+      });
+      // Wheel zoom stays available inside reframe mode as a trackpad nicety —
+      // zooms toward the cursor (offset' = cursor·(1-k) + offset·k).
+      this.addEventListener('wheel', (e) => {
+        if (!this.hasAttribute('data-reframe')) return;
+        e.preventDefault();
+        const r = this.getBoundingClientRect();
+        const cx = (e.clientX - r.left) / r.width * 100 - 50;
+        const cy = (e.clientY - r.top) / r.height * 100 - 50;
+        const prev = this._view.s;
+        const next = clampS(prev * Math.pow(1.0015, -e.deltaY));
+        if (next === prev) return;
+        const k = next / prev;
+        this._view.s = next;
+        this._view.x = cx * (1 - k) + this._view.x * k;
+        this._view.y = cy * (1 - k) + this._view.y * k;
+        this._clampView();
+        this._applyView();
+      }, { passive: false });
+    }
 
-    <!-- WHY -->
-    <section id="why" class="fm-sec" style="padding:88px 46px 76px;">
-      <div data-reveal style="display:flex; align-items:center; gap:14px;">
-        <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.16em; color:#ED8A8A;">04 — WHY ME</div>
-        <div style="flex:1; height:1.5px; background:#221C1522;"></div>
-      </div>
-      <div data-reveal style="font-family:'Shippori Mincho',serif; font-weight:800; font-size:clamp(32px,4.4vw,56px); line-height:1.18; margin-top:14px;">選ばれる、<span style="color:#ED8A8A;">3つ</span>の理由。</div>
-      <div data-reveal class="fm-why-row" style="margin-top:36px;">
-        <div class="fm-why-card">
-          <div style="position:absolute; top:-18px; right:-6px; font-family:'Archivo',sans-serif; font-weight:900; font-size:128px; color:#221C150a; line-height:1;">1</div>
-          <div class="fm-why-num">01</div>
-          <div class="fm-why-title">寄り添う提案力</div>
-          <div class="fm-why-detail">顧客の本当の願いを汲み取り、ヒアリングから細部の調整まで丁寧に伴走。期待を超えるクオリティで、「頼んでよかった」と言われる仕上がりを追求します。</div>
-        </div>
-        <div class="fm-why-card">
-          <div style="position:absolute; top:-18px; right:-6px; font-family:'Archivo',sans-serif; font-weight:900; font-size:128px; color:#221C150a; line-height:1;">2</div>
-          <div class="fm-why-num">02</div>
-          <div class="fm-why-title">早いレスポンス・親しみやすさ</div>
-          <div class="fm-why-detail">連絡にはとにかく早く、気軽に相談できる空気を大切に。テンポの良いコミュニケーションで、初めての方でも安心して任せられるパートナーであり続けます。</div>
-        </div>
-        <div class="fm-why-card">
-          <div style="position:absolute; top:-18px; right:-6px; font-family:'Archivo',sans-serif; font-weight:900; font-size:128px; color:#221C150a; line-height:1;">3</div>
-          <div class="fm-why-num">03</div>
-          <div class="fm-why-title">止まらない向上心</div>
-          <div class="fm-why-detail">畑違いの未経験からチーム責任者まで駆け上がった行動力。常に学び続け、デザインからコーディングまで幅広くカバー。新しい挑戦こそ、わたしの得意分野です。</div>
-        </div>
-      </div>
-    </section>
+    connectedCallback() {
+      // Warn once per page — an id-less slot works for the session but
+      // cannot persist, and two id-less slots would share nothing.
+      if (!this.id && !ImageSlot._warned) {
+        ImageSlot._warned = true;
+        console.warn('<image-slot> without an id will not persist its dropped image.');
+      }
+      this.addEventListener('dragenter', this);
+      this.addEventListener('dragover', this);
+      this.addEventListener('dragleave', this);
+      this.addEventListener('drop', this);
+      subs.add(this._subFn);
+      // width%/height% in _applyView encode the frame aspect at call time —
+      // a host resize (responsive grid, pane divider) would stretch the
+      // image until the next _render. Re-render on size change: _render()
+      // re-seeds _view from stored before clamp/apply, so a shrink→grow
+      // cycle round-trips instead of ratcheting x/y toward the narrower
+      // frame's clamp range.
+      this._ro = new ResizeObserver(() => this._render());
+      this._ro.observe(this);
+      load();
+      this._render();
+    }
 
-    <!-- SKILLS -->
-    <section id="skills" class="fm-sec" style="background:#F3EADB; padding:84px 46px;">
-      <div data-reveal style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.16em; color:#ED8A8A;">05 — SKILLS &amp; LICENSE</div>
-      <div data-reveal style="font-family:'Shippori Mincho',serif; font-weight:800; font-size:clamp(32px,4.4vw,56px); line-height:1.18; margin-top:12px;">道具と、証。</div>
-      <div class="fm-skills-grid" style="display:grid; grid-template-columns:1.2fr 0.8fr; gap:48px; margin-top:30px; align-items:start;">
-        <div data-reveal style="display:flex; flex-direction:column; gap:15px;">
-          <div><div style="display:flex; justify-content:space-between; font-family:'Space Mono',monospace; font-size:12px;"><span>Figma / Canva</span><span style="color:#ED8A8A;">95%</span></div><div style="height:7px; background:#DCCEAE; border-radius:4px; margin-top:6px; overflow:hidden;"><div style="width:95%; height:100%; background:#ED8A8A;"></div></div></div>
-          <div><div style="display:flex; justify-content:space-between; font-family:'Space Mono',monospace; font-size:12px;"><span>Illustrator</span><span style="color:#ED8A8A;">90%</span></div><div style="height:7px; background:#DCCEAE; border-radius:4px; margin-top:6px; overflow:hidden;"><div style="width:90%; height:100%; background:#ED8A8A;"></div></div></div>
-          <div><div style="display:flex; justify-content:space-between; font-family:'Space Mono',monospace; font-size:12px;"><span>HTML / CSS</span><span style="color:#ED8A8A;">88%</span></div><div style="height:7px; background:#DCCEAE; border-radius:4px; margin-top:6px; overflow:hidden;"><div style="width:88%; height:100%; background:#ED8A8A;"></div></div></div>
-          <div><div style="display:flex; justify-content:space-between; font-family:'Space Mono',monospace; font-size:12px;"><span>JavaScript / PHP</span><span style="color:#ED8A8A;">75%</span></div><div style="height:7px; background:#DCCEAE; border-radius:4px; margin-top:6px; overflow:hidden;"><div style="width:75%; height:100%; background:#ED8A8A;"></div></div></div>
-        </div>
-        <div data-reveal style="display:flex; flex-direction:column; gap:10px;">
-          <span style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:13px; font-weight:500; border:1.5px solid #221C15; border-radius:4px; padding:11px 14px;">webデザイン技能検定3級 <span style="color:#9a917f;">国家資格</span></span>
-          <span style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:13px; font-weight:500; border:1.5px solid #221C15; border-radius:4px; padding:11px 14px;">色彩検定2級</span>
-        </div>
-      </div>
-    </section>
+    disconnectedCallback() {
+      subs.delete(this._subFn);
+      this.removeEventListener('dragenter', this);
+      this.removeEventListener('dragover', this);
+      this.removeEventListener('dragleave', this);
+      this.removeEventListener('drop', this);
+      if (this._ro) { this._ro.disconnect(); this._ro = null; }
+      this._exitReframe(false);
+    }
 
-    <!-- CONTACT -->
-    <section id="contact" class="fm-sec" style="background:#ED8A8A; color:#F3EADB; padding:84px 46px 40px;">
-      <div data-reveal style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.16em; color:#F3EADB;">06 — CONTACT</div>
-      <div data-reveal style="font-family:'Archivo',sans-serif; font-weight:900; font-size:clamp(40px,8vw,116px); line-height:0.92; letter-spacing:-0.04em; margin-top:14px; color:#F3EADB;">LET'S CREATE<br>TOGETHER!</div>
-      <div data-reveal style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:24px; margin-top:30px; border-top:1.5px solid #F3EADB; padding-top:22px;">
-        <div style="font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:clamp(17px,2vw,24px); line-height:1.5; color:#F3EADB;">お気軽にご相談ください。<br><span style="font-weight:400; font-size:14px;">レスポンス早めに、親しみやすく。</span></div>
-      </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:54px;">
-        <div style="font-family:'Archivo',sans-serif; font-weight:900; font-size:17px; color:#F3EADB;">ふじもも │ Design</div>
-        <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#F3EADB;">© 2026 FUJIMOMO — OSAKA, JAPAN</div>
-      </div>
-    </section>
+    _enterReframe() {
+      if (this.hasAttribute('data-reframe')) return;
+      this.setAttribute('data-reframe', '');
+      this._applyView();
+      // Close on click outside (the spill handler stopPropagation()s so
+      // in-image drags don't reach this) and on Escape. Listeners are held
+      // on the instance so _exitReframe / disconnectedCallback can detach
+      // exactly what was attached.
+      this._outside = (e) => {
+        if (e.composedPath && e.composedPath().includes(this)) return;
+        this._exitReframe(true);
+      };
+      this._esc = (e) => { if (e.key === 'Escape') this._exitReframe(true); };
+      document.addEventListener('pointerdown', this._outside, true);
+      document.addEventListener('keydown', this._esc, true);
+    }
 
-  </main>
+    _exitReframe(commit) {
+      if (!this.hasAttribute('data-reframe')) return;
+      if (this._dragUp) this._dragUp();
+      this.removeAttribute('data-reframe');
+      this.removeAttribute('data-panning');
+      if (this._outside) document.removeEventListener('pointerdown', this._outside, true);
+      if (this._esc) document.removeEventListener('keydown', this._esc, true);
+      this._outside = this._esc = null;
+      if (commit) this._commitView();
+    }
 
-  <!-- CONTACT FORM OVERLAY -->
-  <div data-contact-overlay style="position:absolute; inset:0; left:clamp(248px,22vw,310px); z-index:70; pointer-events:none; visibility:hidden;">
-    <div data-contact-ink style="position:absolute; inset:0; background:#ED8A8A; clip-path:circle(0px at calc(100% - 76px) calc(100% - 76px)); transition:clip-path .75s cubic-bezier(.66,0,.34,1);"></div>
-    <div data-contact-panel style="position:absolute; inset:0; overflow-y:auto; opacity:0; transition:opacity .45s ease .3s; display:flex; align-items:center; justify-content:center; padding:clamp(24px,5vw,64px);">
-      <div style="width:100%; max-width:560px;">
-        <button data-contact-close class="fm-close" aria-label="閉じる" style="position:absolute; top:24px; right:24px; width:48px; height:48px; border-radius:50%; border:1.5px solid #221C15; background:transparent; color:#221C15; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .3s, color .3s, transform .5s;">✕</button>
-        <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.16em; color:#221C15;">CONTACT FORM</div>
-        <div style="font-family:'Shippori Mincho',serif; font-weight:800; font-size:clamp(30px,4vw,46px); line-height:1.16; color:#221C15; margin-top:10px;">お問い合わせ</div>
-        <div style="font-family:'Zen Kaku Gothic New',sans-serif; font-size:13.5px; line-height:1.8; color:#3a2422; margin-top:10px;">お仕事のご相談、お見積もり、なんでもお気軽に。<br>レスポンス早めにお返事します。</div>
-        <form style="display:flex; flex-direction:column; gap:16px; margin-top:28px;" onsubmit="return false;">
-          <label style="display:block;"><span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#221C15;">NAME / お名前</span><input type="text" placeholder="ふじもも 太郎" style="width:100%; margin-top:7px; padding:13px 15px; border:1.5px solid #221C15; border-radius:6px; background:#F8F1E6; font-family:'Zen Kaku Gothic New',sans-serif; font-size:14px; color:#221C15; outline:none;"></label>
-          <label style="display:block;"><span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#221C15;">EMAIL / メール</span><input type="email" placeholder="you@example.com" style="width:100%; margin-top:7px; padding:13px 15px; border:1.5px solid #221C15; border-radius:6px; background:#F8F1E6; font-family:'Zen Kaku Gothic New',sans-serif; font-size:14px; color:#221C15; outline:none;"></label>
-          <label style="display:block;"><span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:0.1em; color:#221C15;">MESSAGE / ご相談内容</span><textarea rows="4" placeholder="プロジェクトの内容、ご予算、納期などをお書きください。" style="width:100%; margin-top:7px; padding:13px 15px; border:1.5px solid #221C15; border-radius:6px; background:#F8F1E6; font-family:'Zen Kaku Gothic New',sans-serif; font-size:14px; color:#221C15; outline:none; resize:vertical;"></textarea></label>
-          <button type="submit" class="fm-send" style="margin-top:6px; padding:16px; border:none; border-radius:999px; background:#221C15; color:#F3EADB; font-family:'Archivo',sans-serif; font-weight:800; font-size:16px; letter-spacing:0.02em; cursor:pointer; transition:transform .3s;">SEND MESSAGE →</button>
-        </form>
-      </div>
-    </div>
-  </div>
+    attributeChangedCallback() { if (this.shadowRoot) this._render(); }
 
-  <!-- floating round CTA -->
-  <a href="#contact" data-cta-float class="fm-cta-float" style="position:fixed; bottom:28px; right:28px; z-index:60; width:104px; height:104px; padding:12px; border-radius:50%; background:#ED8A8A; color:#221C15; text-decoration:none; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 14px 34px rgba(34,28,21,.34);">
-    <span style="font-family:'Archivo',sans-serif; font-weight:900; font-size:15px; letter-spacing:0.02em;">CONTACT</span>
-    <span class="fm-cta-arrow" style="font-family:'Space Mono',monospace; font-size:11px; color:#221C15; margin-top:2px;">↗</span>
-  </a>
-</div>
-<script src="script.js"></script>
-</body>
-</html>
+    // handleEvent — one listener object for all four drag events keeps the
+    // add/remove symmetric and the depth counter correct.
+    handleEvent(e) {
+      if (e.type === 'dragenter' || e.type === 'dragover') {
+        // Without preventDefault the browser never fires 'drop'.
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+        if (e.type === 'dragenter') this._depth++;
+        this.setAttribute('data-over', '');
+      } else if (e.type === 'dragleave') {
+        // dragenter/leave fire for every descendant crossing — count depth
+        // so hovering the icon inside the empty state doesn't flicker.
+        if (--this._depth <= 0) { this._depth = 0; this.removeAttribute('data-over'); }
+      } else if (e.type === 'drop') {
+        e.preventDefault();
+        e.stopPropagation();
+        this._depth = 0;
+        this.removeAttribute('data-over');
+        const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (f) this._ingest(f);
+      }
+    }
+
+    async _ingest(file) {
+      this._setError(null);
+      if (!file || ACCEPT.indexOf(file.type) < 0) {
+        this._setError('Drop a PNG, JPEG, WebP, or AVIF image.');
+        return;
+      }
+      // toDataUrl can take hundreds of ms on a large photo. A Clear or a
+      // newer drop during that window would be clobbered when this await
+      // resumes — bump + capture a generation so stale encodes bail.
+      const gen = ++this._gen;
+      try {
+        const w = this.clientWidth || this.offsetWidth || MAX_DIM;
+        const url = await toDataUrl(file, w);
+        if (gen !== this._gen) return;
+        // Only exit reframe once the new image is in hand — a rejected type
+        // or decode failure leaves the in-progress crop untouched.
+        this._exitReframe(false);
+        const val = { u: url, s: 1, x: 0, y: 0 };
+        setSlot(this.id || '', val);
+        // Keep a session-local copy for id-less slots so the drop still
+        // shows, even though it cannot persist.
+        if (!this.id) { this._local = val; this._render(); }
+      } catch (err) {
+        if (gen !== this._gen) return;
+        this._setError('Could not read that image.');
+        console.warn('<image-slot> ingest failed:', err);
+      }
+    }
+
+    _setError(msg) {
+      if (this._err) { this._err.remove(); this._err = null; }
+      if (!msg) return;
+      const d = document.createElement('div');
+      d.className = 'err'; d.textContent = msg;
+      this.shadowRoot.appendChild(d);
+      this._err = d;
+      setTimeout(() => { if (this._err === d) { d.remove(); this._err = null; } }, 3000);
+    }
+
+    // Reframing (pan/resize) is only meaningful for fit=cover — contain/fill
+    // keep the old object-fit path and double-click is a no-op.
+    _reframes() {
+      return this.hasAttribute('data-filled') &&
+        (this.getAttribute('fit') || 'cover') === 'cover';
+    }
+
+    // Cover-baseline geometry, shared by clamp/apply/resize. Null until the
+    // img has loaded (naturalWidth is 0 before that) or when the slot has no
+    // layout box — ResizeObserver fires with a 0×0 rect under display:none,
+    // and clamping against a degenerate 1×1 frame would silently pull the
+    // stored pan toward zero.
+    _geom() {
+      const iw = this._img.naturalWidth, ih = this._img.naturalHeight;
+      const fw = this.clientWidth, fh = this.clientHeight;
+      if (!iw || !ih || !fw || !fh) return null;
+      return { iw, ih, fw, fh, base: Math.max(fw / iw, fh / ih) };
+    }
+
+    _clampView() {
+      // Pan range on each axis is half the overflow past the frame edge.
+      const g = this._geom();
+      if (!g) return;
+      const mx = Math.max(0, (g.iw * g.base * this._view.s / g.fw - 1) * 50);
+      const my = Math.max(0, (g.ih * g.base * this._view.s / g.fh - 1) * 50);
+      this._view.x = Math.max(-mx, Math.min(mx, this._view.x));
+      this._view.y = Math.max(-my, Math.min(my, this._view.y));
+    }
+
+    _applyView() {
+      const g = this._geom();
+      const fit = this.getAttribute('fit') || 'cover';
+      if (fit !== 'cover' || !g) {
+        // Non-cover, or dimensions not known yet (before img load).
+        this._img.style.width = '100%';
+        this._img.style.height = '100%';
+        this._img.style.left = '50%';
+        this._img.style.top = '50%';
+        this._img.style.objectFit = fit;
+        this._img.style.objectPosition = this.getAttribute('position') || '50% 50%';
+        return;
+      }
+      // Cover baseline: img fills the frame on its tighter axis at s=1, so
+      // pan works immediately on the overflowing axis without zooming first.
+      // Width/height and left/top are all frame-% — depends only on the
+      // frame aspect ratio, so a responsive resize keeps the same crop. The
+      // spill layer mirrors the same box so its corners = image corners.
+      const k = g.base * this._view.s;
+      const w = (g.iw * k / g.fw * 100) + '%';
+      const h = (g.ih * k / g.fh * 100) + '%';
+      const l = (50 + this._view.x) + '%';
+      const t = (50 + this._view.y) + '%';
+      this._img.style.width = w; this._img.style.height = h;
+      this._img.style.left = l; this._img.style.top = t;
+      this._img.style.objectFit = '';
+      this._spill.style.width = w; this._spill.style.height = h;
+      this._spill.style.left = l; this._spill.style.top = t;
+    }
+
+    _commitView() {
+      const v = { s: this._view.s, x: this._view.x, y: this._view.y };
+      if (this._userUrl) v.u = this._userUrl;
+      // Framing-only (no u) persists too so an author-src slot remembers its
+      // crop; clearing the sidecar still falls through to src=.
+      if (this.id) setSlot(this.id, v);
+      else { this._local = v; }
+    }
+
+    _render() {
+      // Shape / mask. Presets use border-radius so the dashed ring can
+      // follow the rounded outline; clip-path is only applied for an
+      // explicit `mask` (the ring is hidden there since a rectangle
+      // dashed border chopped by an arbitrary polygon looks broken).
+      const mask = this.getAttribute('mask');
+      const shape = (this.getAttribute('shape') || 'rounded').toLowerCase();
+      let radius = '';
+      if (shape === 'circle') radius = '50%';
+      else if (shape === 'pill') radius = '9999px';
+      else if (shape === 'rounded') {
+        const n = parseFloat(this.getAttribute('radius'));
+        radius = (Number.isFinite(n) ? n : 12) + 'px';
+      }
+      this._frame.style.borderRadius = mask ? '' : radius;
+      this._frame.style.clipPath = mask || '';
+      this._ring.style.borderRadius = mask ? '' : radius;
+      this._ring.style.display = mask ? 'none' : '';
+
+      // Controls and reframe entry gate on this so share links stay read-only.
+      const editable = !!(window.omelette && window.omelette.writeFile);
+      this.toggleAttribute('data-editable', editable);
+      this._sub.style.display = editable ? '' : 'none';
+
+      // Content. The sidecar is also writable by the agent's write_file
+      // tool, so its value isn't guaranteed canvas-originated — only accept
+      // data:image/ URLs from it. The `src` attribute is author-controlled
+      // (Claude wrote it into the HTML) so it passes through unchanged.
+      let stored = this.id ? getSlot(this.id) : this._local;
+      if (stored && stored.u && !/^data:image\//i.test(stored.u)) stored = null;
+      const srcAttr = this.getAttribute('src') || '';
+      this._userUrl = (stored && stored.u) || null;
+      const url = this._userUrl || srcAttr;
+      // Don't clobber an in-flight reframe with a store-triggered re-render.
+      if (!this.hasAttribute('data-reframe')) {
+        this._view = {
+          s: stored && Number.isFinite(stored.s) ? clampS(stored.s) : 1,
+          x: stored && Number.isFinite(stored.x) ? stored.x : 0,
+          y: stored && Number.isFinite(stored.y) ? stored.y : 0,
+        };
+      }
+      this._cap.textContent = this.getAttribute('placeholder') || 'Drop an image';
+      // Toggle via style.display — the [hidden] attribute alone loses to
+      // the display:flex / display:block rules in the stylesheet above.
+      if (url) {
+        if (this._img.getAttribute('src') !== url) {
+          this._img.src = url;
+          this._ghost.src = url;
+        }
+        this._img.style.display = 'block';
+        this._empty.style.display = 'none';
+        this.setAttribute('data-filled', '');
+        this._clampView();
+        this._applyView();
+      } else {
+        this._img.style.display = 'none';
+        this._img.removeAttribute('src');
+        this._ghost.removeAttribute('src');
+        this._empty.style.display = 'flex';
+        this.removeAttribute('data-filled');
+      }
+    }
+  }
+
+  if (!customElements.get('image-slot')) {
+    customElements.define('image-slot', ImageSlot);
+  }
+})();
